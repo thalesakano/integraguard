@@ -1,0 +1,13 @@
+services:
+  sandbox:
+    build:
+      context: .
+      dockerfile: sandbox/Dockerfile
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./sandbox/src:/app/sandbox/src
+      - ./scenarios:/app/scenarios
+    environment:
+      - PORT=4000
+      - HOST=0.0.0.0

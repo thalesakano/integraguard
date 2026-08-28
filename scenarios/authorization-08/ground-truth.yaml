@@ -1,0 +1,6 @@
+case: authorization-08
+expectedDecision: BLOCKED
+blockers:
+  - id: BLK-001
+    severity: critical
+    type: endpoint-not-found

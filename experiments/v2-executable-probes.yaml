@@ -1,0 +1,8 @@
+name: v2-executable-probes
+description: Executable HTTP probes against sandbox
+version: V2
+workflow: integraguard
+features:
+  - structured_requirements
+  - http_probes
+scenarios: all

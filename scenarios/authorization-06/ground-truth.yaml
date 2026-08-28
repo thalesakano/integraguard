@@ -1,0 +1,6 @@
+case: authorization-06
+expectedDecision: BLOCKED
+blockers:
+  - id: BLK-001
+    severity: critical
+    type: business-error-inside-http-200

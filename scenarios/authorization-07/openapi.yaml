@@ -1,0 +1,35 @@
+openapi: "3.0.0"
+info:
+  title: Pre-Authorization API
+  version: "1.0"
+paths:
+  /v1/pre-authorization:
+    post:
+      summary: Create pre-authorization
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+          description: Ensures idempotent submission
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                beneficiaryCard:
+                  type: string
+                procedureCode:
+                  type: string
+      responses:
+        "200":
+          description: Success or error (always 200)
+        "4XX":
+          description: Client error
+  /v1/pre-authorization/{id}:
+    get:
+      summary: Get authorization
+      responses:
+        "200":
+          description: Success

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <rect width="960" height="540" fill="#0f1419"/>
+  <text x="24" y="36" fill="#e7ecf3" font-family="system-ui,sans-serif" font-size="22" font-weight="600">Create Analysis</text>
+  <text x="24" y="58" fill="#8b9cb3" font-family="system-ui,sans-serif" font-size="12">Evidence-grounded API integration preflight</text>
+
+  <rect x="24" y="76" width="130" height="32" rx="8" fill="#3b82f6"/>
+  <text x="44" y="96" fill="#fff" font-family="system-ui,sans-serif" font-size="12">Scenario template</text>
+  <rect x="162" y="76" width="100" height="32" rx="8" fill="#1a2332" stroke="#2d3a4f"/>
+  <text x="178" y="96" fill="#e7ecf3" font-family="system-ui,sans-serif" font-size="12">Custom input</text>
+  <rect x="270" y="76" width="90" height="32" rx="8" fill="#1a2332" stroke="#ef4444" stroke-dasharray="4 2"/>
+  <text x="282" y="96" fill="#ef4444" font-family="system-ui,sans-serif" font-size="12">Real API</text>
+
+  <rect x="24" y="124" width="912" height="396" rx="12" fill="#1a2332" stroke="#2d3a4f"/>
+  <text x="40" y="152" fill="#e7ecf3" font-family="system-ui,sans-serif" font-size="12" font-weight="600">Scenario template</text>
+  <rect x="40" y="160" width="880" height="32" rx="8" fill="#0f1419" stroke="#2d3a4f"/>
+  <text x="52" y="180" fill="#e7ecf3" font-family="system-ui,sans-serif" font-size="12">Demo: Multi-blocker (authorization-07)</text>
+
+  <text x="40" y="216" fill="#8b9cb3" font-family="system-ui,sans-serif" font-size="11">Integration Goal</text>
+  <rect x="40" y="222" width="880" height="40" rx="8" fill="#0f1419" stroke="#2d3a4f"/>
+  <text x="52" y="246" fill="#e7ecf3" font-family="system-ui,sans-serif" font-size="11">Submit and query pre-authorization requests...</text>
+
+  <text x="40" y="282" fill="#8b9cb3" font-family="system-ui,sans-serif" font-size="11">OpenAPI URL</text>
+  <rect x="40" y="288" width="760" height="32" rx="8" fill="#0f1419" stroke="#2d3a4f"/>
+  <text x="52" y="308" fill="#8b9cb3" font-family="ui-monospace,monospace" font-size="10">https://api.example.com/openapi.json</text>
+  <rect x="812" y="288" width="108" height="32" rx="8" fill="#3b82f6"/>
+  <text x="828" y="308" fill="#fff" font-family="system-ui,sans-serif" font-size="11">Fetch spec</text>
+
+  <rect x="40" y="336" width="880" height="36" rx="8" fill="#ef4444" opacity="0.12" stroke="#ef4444"/>
+  <text x="52" y="358" fill="#ef4444" font-family="system-ui,sans-serif" font-size="11">� Real API mode sends HTTP probes to your target URL. Use staging only.</text>
+
+  <text x="40" y="396" fill="#8b9cb3" font-family="system-ui,sans-serif" font-size="11">Workflow options</text>
+  <text x="52" y="418" fill="#e7ecf3" font-family="system-ui,sans-serif" font-size="11"> Human gate  require approval before mutating probes</text>
+  <text x="52" y="440" fill="#e7ecf3" font-family="system-ui,sans-serif" font-size="11"> Use LLM for hypothesis generation (Evidence Gate decides)</text>
+  <text x="52" y="462" fill="#e7ecf3" font-family="system-ui,sans-serif" font-size="11"> Run via LangGraph orchestrator</text>
+
+  <rect x="40" y="478" width="140" height="32" rx="8" fill="#3b82f6"/>
+  <text x="68" y="498" fill="#fff" font-family="system-ui,sans-serif" font-size="12" font-weight="600">Start Analysis</text>
+</svg>

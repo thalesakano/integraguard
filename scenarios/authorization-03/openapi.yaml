@@ -1,0 +1,21 @@
+openapi: "3.0.0"
+info:
+  title: Pre-Authorization API (Outdated)
+  version: "1.0"
+paths:
+  /v1/pre-authorization:
+    post:
+      summary: Create pre-authorization
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                beneficiaryCard:
+                  type: string
+                procedureCode:
+                  type: string
+      responses:
+        "200":
+          description: Success

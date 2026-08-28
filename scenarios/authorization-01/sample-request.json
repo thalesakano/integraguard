@@ -1,0 +1,4 @@
+{
+  "beneficiary_id": "BEN-123",
+  "procedures": [{ "code": "789" }]
+}

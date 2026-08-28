@@ -1,0 +1,17 @@
+node_modules/
+.next/
+dist/
+runs/*
+!runs/v0-baseline/
+!runs/v4-evidence-gate/
+runs/v0-baseline/*
+!runs/v0-baseline/metrics.json
+runs/v4-evidence-gate/*
+!runs/v4-evidence-gate/metrics.json
+*.db
+.env
+.env.local
+.DS_Store
+*.log
+coverage/
+.turbo/

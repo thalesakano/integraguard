@@ -1,0 +1,75 @@
+name: Eval
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Start sandbox
+        run: docker compose up -d --build --wait
+
+      - name: Wait for sandbox health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4000/health; then
+              echo "Sandbox ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Sandbox failed to start"
+          docker compose logs
+          exit 1
+
+      - name: Run baseline eval
+        run: pnpm eval:baseline
+
+      - name: Run final eval
+        run: pnpm eval:final
+
+      - name: Compare metrics
+        run: pnpm eval:compare v0-baseline v4-evidence-gate
+
+      - name: Assert minimum F1
+        run: |
+          node -e "
+            const m = require('./runs/v4-evidence-gate/metrics.json');
+            const f1 = m.aggregated.weightedF1;
+            if (f1 < 0.85) {
+              console.error('F1 below threshold:', f1);
+              process.exit(1);
+            }
+            console.log('Weighted F1:', f1);
+          "
+
+      - name: Upload metrics artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-metrics
+          path: |
+            runs/v0-baseline/metrics.json
+            runs/v4-evidence-gate/metrics.json

@@ -1,0 +1,3 @@
+case: authorization-02
+expectedDecision: READY
+blockers: []

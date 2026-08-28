@@ -1,0 +1,15 @@
+case: authorization-07
+expectedDecision: BLOCKED
+blockers:
+  - id: BLK-001
+    severity: critical
+    type: undocumented-required-field
+    description: API requires beneficiary_id but docs show beneficiaryCard
+  - id: BLK-002
+    severity: critical
+    type: business-error-inside-http-200
+    description: API returns HTTP 200 with businessStatus error for rejected authorizations
+  - id: BLK-003
+    severity: major
+    type: missing-idempotency
+    description: Documentation claims idempotency support but duplicates are created

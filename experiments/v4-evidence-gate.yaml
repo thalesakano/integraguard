@@ -1,0 +1,10 @@
+name: v4-evidence-gate
+description: Adversarial verifier and evidence gate
+version: V4
+workflow: integraguard
+features:
+  - structured_requirements
+  - http_probes
+  - adversarial_verifier
+  - evidence_gate
+scenarios: all

@@ -1,0 +1,6 @@
+case: authorization-04
+expectedDecision: BLOCKED
+blockers:
+  - id: BLK-001
+    severity: critical
+    type: undocumented-required-field

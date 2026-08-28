@@ -1,0 +1,9 @@
+{
+  "beneficiary_id": "BEN-001",
+  "effectiveDate": "28/08/2026",
+  "procedures": [
+    {
+      "code": "789"
+    }
+  ]
+}

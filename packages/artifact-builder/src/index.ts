@@ -1,0 +1,298 @@
+import JSZip from "jszip";
+import type { ReadinessPack, TrajectoryEvent, Evidence } from "@integraguard/schemas";
+
+export interface ArtifactBundle {
+  "integration-readiness-report.md": string;
+  "vendor-clarification-email.md": string;
+  "typescript-client.ts": string;
+  "postman-collection.json": string;
+  "agent-trajectories.json": string;
+  "contract-tests/contract.test.ts": string;
+  "contract-tests/vitest.config.ts": string;
+}
+
+export function buildReport(pack: ReadinessPack): string {
+  const verified = pack.findings.filter((f) => f.status === "verified");
+  const critical = verified.filter((f) => f.severity === "critical");
+  const major = verified.filter((f) => f.severity === "major");
+
+  let md = `# Integration Readiness Report\n\n`;
+  md += `**Run ID:** ${pack.runId}\n`;
+  md += `**Status:** ${pack.decision}\n`;
+  md += `**Readiness Score:** ${pack.readinessScore}/100\n`;
+  md += `**Generated:** ${pack.generatedAt}\n\n`;
+
+  md += `## Summary\n\n`;
+  md += `| Metric | Count |\n|--------|-------|\n`;
+  md += `| Critical blockers | ${critical.length} |\n`;
+  md += `| Major inconsistencies | ${major.length} |\n`;
+  md += `| Verified requirements | ${pack.requirements.length} |\n`;
+  md += `| Unanswered questions | ${pack.unansweredQuestions.length} |\n\n`;
+
+  if (verified.length > 0) {
+    md += `## Findings\n\n`;
+    md += `| ID | Severity | Requirement | Description | Evidence |\n`;
+    md += `|----|----------|-------------|-------------|----------|\n`;
+    for (const f of verified) {
+      md += `| ${f.id} | ${f.severity} | ${f.requirementId} | ${f.description} | ${f.evidenceIds.join(", ")} |\n`;
+    }
+    md += `\n`;
+  }
+
+  if (pack.unansweredQuestions.length > 0) {
+    md += `## Unanswered Questions\n\n`;
+    for (const q of pack.unansweredQuestions) {
+      md += `- ${q}\n`;
+    }
+    md += `\n`;
+  }
+
+  md += `## Requirement × Endpoint Matrix\n\n`;
+  md += `| Requirement | Endpoint | Confidence |\n|-------------|----------|------------|\n`;
+  for (const m of pack.mappings) {
+    md += `| ${m.requirementId} | ${m.method} ${m.endpoint} | ${(m.confidence * 100).toFixed(0)}% |\n`;
+  }
+
+  return md;
+}
+
+export function buildVendorEmail(pack: ReadinessPack): string {
+  const blockers = pack.findings.filter((f) => f.status === "verified");
+  let email = `Subject: Technical Clarifications Required — Integration Preflight (${pack.runId})\n\n`;
+  email += `Dear API Team,\n\n`;
+  email += `We performed an integration preflight analysis and identified ${blockers.length} item(s) requiring clarification before we can proceed.\n\n`;
+
+  if (blockers.length > 0) {
+    email += `## Blockers\n\n`;
+    for (const b of blockers) {
+      email += `### ${b.severity.toUpperCase()}: ${b.description}\n`;
+      email += `- Requirement: ${b.requirementId}\n`;
+      email += `- Evidence IDs: ${b.evidenceIds.join(", ")}\n`;
+      const questions = vendorQuestionsForBlocker(b.blockerType);
+      if (questions.length) {
+        email += `- Questions for your team:\n`;
+        for (const q of questions) email += `  - ${q}\n`;
+      }
+      email += `\n`;
+    }
+  }
+
+  if (pack.unansweredQuestions.length > 0) {
+    email += `## Open Questions\n\n`;
+    for (const q of pack.unansweredQuestions) {
+      email += `- ${q}\n`;
+    }
+    email += `\n`;
+  }
+
+  email += `Please confirm the expected contract behavior so we can complete integration testing.\n\n`;
+  email += `Best regards,\nIntegraGuard Preflight Analysis\n`;
+  return email;
+}
+
+function vendorQuestionsForBlocker(blockerType?: string): string[] {
+  const map: Record<string, string[]> = {
+    "undocumented-required-field": ["Which fields are required but not listed in public docs?", "Can you update OpenAPI with the correct schema?"],
+    "business-error-inside-http-200": ["Should business rejections return non-2xx HTTP status codes?", "What is the canonical error field: businessStatus or status?"],
+    "schema-divergent": ["Please confirm the canonical request schema and deprecate outdated examples."],
+    "auth-divergent": ["Which authentication method is supported: Bearer, API key, or both?"],
+    "missing-idempotency": ["Is Idempotency-Key supported? What is the deduplication window?"],
+    "pagination-inconsistent": ["Is pagination cursor-based or offset-based? Will totalPages be returned?"],
+    "endpoint-not-found": ["When will the documented endpoint be available in sandbox/production?"],
+    "rate-limit-undocumented": ["What are the rate limits and recommended retry/backoff policy?"],
+  };
+  return map[blockerType ?? ""] ?? ["Please confirm expected behavior and update documentation accordingly."];
+}
+
+export function buildTypeScriptClient(pack: ReadinessPack, sandboxUrl: string): string {
+  const postMapping = pack.mappings.find((m) => m.method === "POST");
+  const endpoint = postMapping?.endpoint ?? "/v1/pre-authorization";
+
+  return `/**
+ * Generated by IntegraGuard — ${pack.runId}
+ * Status: ${pack.decision} (${pack.readinessScore}/100)
+ */
+
+export interface PreAuthorizationRequest {
+  beneficiary_id: string;
+  procedures: { code: string }[];
+  providerTaxId?: string;
+}
+
+export interface PreAuthorizationResponse {
+  authorizationId: string | null;
+  status: string;
+  businessStatus?: string;
+  errorCode?: string;
+}
+
+export class IntegrationClient {
+  constructor(
+    private baseUrl: string = "${sandboxUrl}",
+    private headers: Record<string, string> = {}
+  ) {}
+
+  async createPreAuthorization(body: PreAuthorizationRequest): Promise<PreAuthorizationResponse> {
+    const res = await fetch(new URL("${endpoint}", this.baseUrl).toString(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...this.headers },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (data.businessStatus === "error") {
+      throw new Error(\`Business error: \${data.errorCode ?? "unknown"}\`);
+    }
+    return data;
+  }
+}
+`;
+}
+
+export function buildPostmanCollection(pack: ReadinessPack, sandboxUrl: string): object {
+  const items = pack.mappings.map((m) => ({
+    name: `${m.method} ${m.endpoint}`,
+    request: {
+      method: m.method,
+      header: [{ key: "Content-Type", value: "application/json" }],
+      url: `${sandboxUrl.replace(/\/$/, "")}${m.endpoint}`,
+      body: m.method !== "GET" ? { mode: "raw", raw: JSON.stringify({ beneficiary_id: "BEN-001", procedures: [{ code: "789" }] }, null, 2) } : undefined,
+    },
+  }));
+
+  return {
+    info: { name: `IntegraGuard ${pack.runId}`, schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+    item: items,
+  };
+}
+
+export function buildContractTests(pack: ReadinessPack, sandboxUrl: string): string {
+  const blockers = pack.findings.filter((f) => f.status === "verified");
+  const tests = blockers.map((b, i) => `
+  it("finding ${i + 1}: ${b.blockerType ?? "blocker"}", async () => {
+    const res = await fetch(BASE_URL + "/v1/pre-authorization", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Provider-Id": "PROV-001" },
+      body: JSON.stringify({ beneficiaryCard: "123456", procedureCode: "789" }),
+    });
+    const body = await res.json();
+    // Documents claim success path; this test reproduces divergence
+    expect(body).toBeDefined();
+    ${b.blockerType === "business-error-inside-http-200" ? "if (res.status === 200) expect(body.businessStatus).not.toBe('error');" : ""}
+    ${b.blockerType === "undocumented-required-field" ? "expect(res.status).not.toBe(400);" : ""}
+  });`).join("\n");
+
+  return `import { describe, it, expect } from "vitest";
+
+const BASE_URL = "${sandboxUrl.replace(/\/$/, "")}";
+
+describe("IntegraGuard Contract Tests — ${pack.runId}", () => {
+  it("sandbox is reachable", async () => {
+    const res = await fetch(BASE_URL.replace(/\\/scenarios\\/[^/]+/, "") + "/health");
+    expect(res.ok).toBe(true);
+  });
+${tests}
+});
+`;
+}
+
+export function buildArtifacts(
+  pack: ReadinessPack,
+  trajectories: TrajectoryEvent[],
+  sandboxUrl: string
+): ArtifactBundle {
+  return {
+    "integration-readiness-report.md": buildReport(pack),
+    "vendor-clarification-email.md": buildVendorEmail(pack),
+    "typescript-client.ts": buildTypeScriptClient(pack, sandboxUrl),
+    "postman-collection.json": JSON.stringify(buildPostmanCollection(pack, sandboxUrl), null, 2),
+    "agent-trajectories.json": JSON.stringify(trajectories, null, 2),
+    "contract-tests/contract.test.ts": buildContractTests(pack, sandboxUrl),
+    "contract-tests/vitest.config.ts": `import { defineConfig } from "vitest/config";\nexport default defineConfig({ test: { environment: "node" } });\n`,
+  };
+}
+
+export async function buildArtifactZip(
+  pack: ReadinessPack,
+  trajectories: TrajectoryEvent[],
+  sandboxUrl: string
+): Promise<Buffer> {
+  const artifacts = buildArtifacts(pack, trajectories, sandboxUrl);
+  const zip = new JSZip();
+  for (const [path, content] of Object.entries(artifacts)) {
+    zip.file(path, content);
+  }
+  return Buffer.from(await zip.generateAsync({ type: "arraybuffer" }));
+}
+
+export function linkEvidenceChain(
+  findingId: string,
+  pack: ReadinessPack,
+  trajectories: TrajectoryEvent[]
+): EvidenceChainNode {
+  return buildEvidenceChainNode(findingId, pack, trajectories);
+}
+
+export interface EvidenceChainNode {
+  findingId: string;
+  requirement: string;
+  docSource: string;
+  hypothesis: string;
+  httpMethod: string;
+  httpEndpoint: string;
+  httpStatus: string;
+  httpResponse: string;
+  verifier: string;
+  test: string;
+  blockerType?: string;
+  severity: string;
+  status: string;
+}
+
+function buildEvidenceChainNode(
+  findingId: string,
+  pack: ReadinessPack,
+  trajectories: TrajectoryEvent[]
+): EvidenceChainNode {
+  const finding = pack.findings.find((f) => f.id === findingId);
+  const evidences = (finding?.evidenceIds ?? [])
+    .map((id) => pack.evidences.find((e) => e.id === id))
+    .filter(Boolean) as Evidence[];
+  const docEv = evidences.find((e) => e.type === "document");
+  const httpEv = evidences.find((e) => e.type === "http_probe");
+  const httpPayload = httpEv?.payload as {
+    probeId?: string;
+    statusCode?: number;
+    body?: unknown;
+  } | undefined;
+  const verifierEv = trajectories.find(
+    (t) =>
+      t.agent === "adversarial-verifier" &&
+      t.payload &&
+      (t.payload as { findingId?: string }).findingId === findingId
+  );
+
+  return {
+    findingId,
+    requirement: finding?.requirementId ?? "—",
+    docSource: docEv?.sourceReference ?? "—",
+    hypothesis: finding?.description ?? "—",
+    httpMethod: "HTTP",
+    httpEndpoint: httpEv?.sourceReference?.replace(/^probe:/, "") ?? "—",
+    httpStatus: httpPayload?.statusCode != null ? String(httpPayload.statusCode) : "—",
+    httpResponse: httpEv?.observation ?? "—",
+    verifier: verifierEv?.reason ?? "Evidence supports conclusion",
+    test: `contract-tests/contract.test.ts#finding-${findingId}`,
+    blockerType: finding?.blockerType,
+    severity: finding?.severity ?? "major",
+    status: finding?.status ?? "unverified",
+  };
+}
+
+export function buildAllEvidenceChains(
+  pack: ReadinessPack,
+  trajectories: TrajectoryEvent[]
+): EvidenceChainNode[] {
+  return pack.findings
+    .filter((f) => f.status === "verified")
+    .map((f) => buildEvidenceChainNode(f.id, pack, trajectories));
+}

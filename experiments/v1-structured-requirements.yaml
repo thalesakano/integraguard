@@ -1,0 +1,7 @@
+name: v1-structured-requirements
+description: Structured requirements before analysis
+version: V1
+workflow: integraguard
+features:
+  - structured_requirements
+scenarios: all

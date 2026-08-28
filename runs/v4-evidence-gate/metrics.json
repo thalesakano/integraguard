@@ -1,0 +1,218 @@
+{
+  "experiment": "v4-evidence-gate",
+  "mode": "final",
+  "aggregated": {
+    "weightedF1": 1,
+    "precision": 1,
+    "recall": 1,
+    "truePositives": 14,
+    "falsePositives": 0,
+    "falseNegatives": 0,
+    "unsupportedClaimRate": 0,
+    "executableArtifactRate": 1,
+    "decisionMatch": true
+  },
+  "operational": {
+    "scenarioCount": 12,
+    "totalRuntimeMs": 182,
+    "medianRuntimeMs": 9,
+    "avgRuntimeMsPerCase": 14.333333333333334,
+    "totalVerifierRetries": 0,
+    "costPerCaseUsd": 0,
+    "llmEnabled": false
+  },
+  "results": [
+    {
+      "caseId": "authorization-01",
+      "metrics": {
+        "weightedF1": 1,
+        "precision": 1,
+        "recall": 1,
+        "truePositives": 0,
+        "falsePositives": 0,
+        "falseNegatives": 0,
+        "unsupportedClaimRate": 0,
+        "executableArtifactRate": 1,
+        "decisionMatch": true
+      },
+      "runtimeMs": 51,
+      "verifierRetries": 0
+    },
+    {
+      "caseId": "authorization-02",
+      "metrics": {
+        "weightedF1": 1,
+        "precision": 1,
+        "recall": 1,
+        "truePositives": 0,
+        "falsePositives": 0,
+        "falseNegatives": 0,
+        "unsupportedClaimRate": 0,
+        "executableArtifactRate": 1,
+        "decisionMatch": true
+      },
+      "runtimeMs": 11,
+      "verifierRetries": 0
+    },
+    {
+      "caseId": "authorization-03",
+      "metrics": {
+        "weightedF1": 1,
+        "precision": 1,
+        "recall": 1,
+        "truePositives": 1,
+        "falsePositives": 0,
+        "falseNegatives": 0,
+        "unsupportedClaimRate": 0,
+        "executableArtifactRate": 1,
+        "decisionMatch": true
+      },
+      "runtimeMs": 11,
+      "verifierRetries": 0
+    },
+    {
+      "caseId": "authorization-04",
+      "metrics": {
+        "weightedF1": 1,
+        "precision": 1,
+        "recall": 1,
+        "truePositives": 1,
+        "falsePositives": 0,
+        "falseNegatives": 0,
+        "unsupportedClaimRate": 0,
+        "executableArtifactRate": 1,
+        "decisionMatch": true
+      },
+      "runtimeMs": 9,
+      "verifierRetries": 0
+    },
+    {
+      "caseId": "authorization-05",
+      "metrics": {
+        "weightedF1": 1,
+        "precision": 1,
+        "recall": 1,
+        "truePositives": 1,
+        "falsePositives": 0,
+        "falseNegatives": 0,
+        "unsupportedClaimRate": 0,
+        "executableArtifactRate": 1,
+        "decisionMatch": true
+      },
+      "runtimeMs": 9,
+      "verifierRetries": 0
+    },
+    {
+      "caseId": "authorization-06",
+      "metrics": {
+        "weightedF1": 1,
+        "precision": 1,
+        "recall": 1,
+        "truePositives": 1,
+        "falsePositives": 0,
+        "falseNegatives": 0,
+        "unsupportedClaimRate": 0,
+        "executableArtifactRate": 1,
+        "decisionMatch": true
+      },
+      "runtimeMs": 9,
+      "verifierRetries": 0
+    },
+    {
+      "caseId": "authorization-07",
+      "metrics": {
+        "weightedF1": 1,
+        "precision": 1,
+        "recall": 1,
+        "truePositives": 3,
+        "falsePositives": 0,
+        "falseNegatives": 0,
+        "unsupportedClaimRate": 0,
+        "executableArtifactRate": 1,
+        "decisionMatch": true
+      },
+      "runtimeMs": 22,
+      "verifierRetries": 0
+    },
+    {
+      "caseId": "authorization-08",
+      "metrics": {
+        "weightedF1": 1,
+        "precision": 1,
+        "recall": 1,
+        "truePositives": 1,
+        "falsePositives": 0,
+        "falseNegatives": 0,
+        "unsupportedClaimRate": 0,
+        "executableArtifactRate": 1,
+        "decisionMatch": true
+      },
+      "runtimeMs": 9,
+      "verifierRetries": 0
+    },
+    {
+      "caseId": "authorization-09",
+      "metrics": {
+        "weightedF1": 1,
+        "precision": 1,
+        "recall": 1,
+        "truePositives": 1,
+        "falsePositives": 0,
+        "falseNegatives": 0,
+        "unsupportedClaimRate": 0,
+        "executableArtifactRate": 1,
+        "decisionMatch": true
+      },
+      "runtimeMs": 4,
+      "verifierRetries": 0
+    },
+    {
+      "caseId": "authorization-10",
+      "metrics": {
+        "weightedF1": 1,
+        "precision": 1,
+        "recall": 1,
+        "truePositives": 1,
+        "falsePositives": 0,
+        "falseNegatives": 0,
+        "unsupportedClaimRate": 0,
+        "executableArtifactRate": 1,
+        "decisionMatch": true
+      },
+      "runtimeMs": 19,
+      "verifierRetries": 0
+    },
+    {
+      "caseId": "authorization-11",
+      "metrics": {
+        "weightedF1": 1,
+        "precision": 1,
+        "recall": 1,
+        "truePositives": 1,
+        "falsePositives": 0,
+        "falseNegatives": 0,
+        "unsupportedClaimRate": 0,
+        "executableArtifactRate": 1,
+        "decisionMatch": true
+      },
+      "runtimeMs": 9,
+      "verifierRetries": 0
+    },
+    {
+      "caseId": "authorization-12",
+      "metrics": {
+        "weightedF1": 1,
+        "precision": 1,
+        "recall": 1,
+        "truePositives": 3,
+        "falsePositives": 0,
+        "falseNegatives": 0,
+        "unsupportedClaimRate": 0,
+        "executableArtifactRate": 1,
+        "decisionMatch": true
+      },
+      "runtimeMs": 9,
+      "verifierRetries": 0
+    }
+  ]
+}

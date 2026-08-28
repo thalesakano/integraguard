@@ -1,0 +1,7 @@
+case: authorization-03
+expectedDecision: CONDITIONAL
+blockers:
+  - id: BLK-001
+    severity: major
+    type: schema-divergent
+    description: Documentation uses beneficiaryCard but API expects beneficiary_id and procedures array

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <rect width="960" height="540" fill="#0f1419"/>
+  <rect x="0" y="0" width="960" height="48" fill="#1a2332" stroke="#2d3a4f"/>
+  <text x="24" y="30" fill="#e7ecf3" font-family="system-ui,sans-serif" font-size="16" font-weight="600">Integration Readiness Pack</text>
+  <rect x="820" y="14" width="116" height="28" rx="8" fill="#3b82f6"/>
+  <text x="838" y="32" fill="#fff" font-family="system-ui,sans-serif" font-size="12">Download ZIP</text>
+
+  <rect x="24" y="68" width="912" height="96" rx="12" fill="#1a2332" stroke="#2d3a4f"/>
+  <text x="120" y="118" fill="#ef4444" font-family="system-ui,sans-serif" font-size="32" font-weight="700" text-anchor="middle">BLOCKED</text>
+  <text x="120" y="140" fill="#8b9cb3" font-family="system-ui,sans-serif" font-size="11" text-anchor="middle">Status</text>
+  <text x="320" y="118" fill="#e7ecf3" font-family="system-ui,sans-serif" font-size="32" font-weight="700" text-anchor="middle">50</text>
+  <text x="320" y="140" fill="#8b9cb3" font-family="system-ui,sans-serif" font-size="11" text-anchor="middle">Readiness Score</text>
+  <text x="520" y="118" fill="#ef4444" font-family="system-ui,sans-serif" font-size="32" font-weight="700" text-anchor="middle">2</text>
+  <text x="520" y="140" fill="#8b9cb3" font-family="system-ui,sans-serif" font-size="11" text-anchor="middle">Critical Blockers</text>
+  <text x="720" y="118" fill="#f59e0b" font-family="system-ui,sans-serif" font-size="32" font-weight="700" text-anchor="middle">1</text>
+  <text x="720" y="140" fill="#8b9cb3" font-family="system-ui,sans-serif" font-size="11" text-anchor="middle">Major Issues</text>
+
+  <rect x="24" y="180" width="912" height="140" rx="12" fill="#1a2332" stroke="#2d3a4f"/>
+  <text x="40" y="206" fill="#e7ecf3" font-family="system-ui,sans-serif" font-size="14" font-weight="600">Baseline vs Final (12 scenarios)</text>
+  <g font-family="system-ui,sans-serif" font-size="12">
+    <text x="40" y="234" fill="#8b9cb3">Weighted F1</text><text x="200" y="234" fill="#8b9cb3">0.167</text><text x="320" y="234" fill="#e7ecf3">1.000</text><text x="440" y="234" fill="#22c55e">+0.833</text>
+    <text x="40" y="258" fill="#8b9cb3">Unsupported claims</text><text x="200" y="258" fill="#8b9cb3">0.667</text><text x="320" y="258" fill="#e7ecf3">0.000</text><text x="440" y="258" fill="#22c55e">-0.667</text>
+    <text x="40" y="282" fill="#8b9cb3">Precision / Recall</text><text x="200" y="282" fill="#8b9cb3">0.167</text><text x="320" y="282" fill="#e7ecf3">1.000</text><text x="440" y="282" fill="#22c55e">+0.833</text>
+  </g>
+
+  <rect x="24" y="336" width="448" height="180" rx="12" fill="#1a2332" stroke="#2d3a4f"/>
+  <text x="40" y="362" fill="#e7ecf3" font-family="system-ui,sans-serif" font-size="14" font-weight="600">Evidence Chain</text>
+  <g font-family="system-ui,sans-serif" font-size="10">
+    <rect x="40" y="374" width="72" height="22" rx="6" fill="#3b82f6" opacity="0.2" stroke="#3b82f6"/><text x="48" y="389" fill="#3b82f6">REQ-001</text>
+    <text x="120" y="389" fill="#8b9cb3">�</text>
+    <rect x="132" y="374" width="64" height="22" rx="6" fill="#8b9cb3" opacity="0.15" stroke="#8b9cb3"/><text x="140" y="389" fill="#8b9cb3">Doc</text>
+    <text x="204" y="389" fill="#8b9cb3">�</text>
+    <rect x="216" y="374" width="72" height="22" rx="6" fill="#f59e0b" opacity="0.2" stroke="#f59e0b"/><text x="224" y="389" fill="#f59e0b">HTTP 400</text>
+    <text x="296" y="389" fill="#8b9cb3">�</text>
+    <rect x="308" y="374" width="64" height="22" rx="6" fill="#22c55e" opacity="0.2" stroke="#22c55e"/><text x="316" y="389" fill="#22c55e">Verified</text>
+    <text x="40" y="418" fill="#e7ecf3">beneficiary_id required  docs show beneficiaryCard</text>
+    <text x="40" y="438" fill="#8b9cb3">contract-tests/contract.test.ts#finding-FND-001</text>
+  </g>
+
+  <rect x="488" y="336" width="448" height="180" rx="12" fill="#1a2332" stroke="#2d3a4f"/>
+  <text x="504" y="362" fill="#e7ecf3" font-family="system-ui,sans-serif" font-size="14" font-weight="600">Artifacts in ZIP</text>
+  <g font-family="ui-monospace,monospace" font-size="11" fill="#8b9cb3">
+    <text x="504" y="388">integration-readiness-report.md</text>
+    <text x="504" y="410">contract-tests/contract.test.ts</text>
+    <text x="504" y="432">vendor-clarification-email.md</text>
+    <text x="504" y="454">postman-collection.json</text>
+    <text x="504" y="476">typescript-client.ts</text>
+  </g>
+</svg>

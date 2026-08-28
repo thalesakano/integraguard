@@ -1,0 +1,40 @@
+openapi: "3.0.0"
+info:
+  title: Pre-Authorization API
+  version: "1.0"
+paths:
+  /v1/pre-authorization:
+    post:
+      summary: Create pre-authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [beneficiary_id, procedures]
+              properties:
+                beneficiary_id:
+                  type: string
+                procedures:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+      responses:
+        "200":
+          description: Success
+  /v1/pre-authorization/{id}:
+    get:
+      summary: Get authorization status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success

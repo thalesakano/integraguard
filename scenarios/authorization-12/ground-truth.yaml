@@ -1,0 +1,12 @@
+case: authorization-12
+expectedDecision: BLOCKED
+blockers:
+  - id: BLK-001
+    severity: critical
+    type: auth-divergent
+  - id: BLK-002
+    severity: critical
+    type: undocumented-required-field
+  - id: BLK-003
+    severity: critical
+    type: business-error-inside-http-200

@@ -1,0 +1,8 @@
+{
+  "beneficiary_id": "BEN-001",
+  "procedures": [
+    {
+      "code": "INVALID"
+    }
+  ]
+}

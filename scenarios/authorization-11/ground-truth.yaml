@@ -1,0 +1,6 @@
+case: authorization-11
+expectedDecision: CONDITIONAL
+blockers:
+  - id: BLK-001
+    severity: major
+    type: rate-limit-undocumented

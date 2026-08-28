@@ -1,0 +1,38 @@
+# Dependencies (pnpm symlinks break Docker build on Windows)
+**/node_modules
+node_modules
+
+# Build outputs
+**/.next
+**/dist
+**/coverage
+**/.turbo
+
+# Git & IDE
+.git
+.gitignore
+.cursor
+.vscode
+**/*.md
+!scenarios/**
+
+# Runtime / local data
+runs
+.env
+.env.*
+*.log
+
+# Web app not needed for sandbox image
+apps
+
+# Packages not needed for sandbox image
+packages
+
+# Experiments & scripts
+experiments
+scripts
+docs
+
+# Tests
+**/*.test.ts
+vitest.config.ts

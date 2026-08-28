@@ -1,0 +1,5 @@
+name: v0-baseline
+description: Single generalist agent single-pass
+version: V0
+workflow: baseline-v0
+scenarios: all
