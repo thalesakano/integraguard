@@ -102,7 +102,31 @@ export const AnalysisInputSchema = z.object({
   scenarioId: z.string().optional(),
   allowedOperations: z.array(z.string()).default(["GET", "POST"]),
   useLlm: z.boolean().optional(),
-  targetMode: z.enum(["sandbox", "custom", "real-api"]).optional(),
+  targetMode: z.enum(["sandbox", "custom", "real-api", "docs-url"]).optional(),
+});
+
+export const ExtractedEndpointSchema = z.object({
+  method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]),
+  path: z.string(),
+  summary: z.string().optional(),
+  auth: z.string().optional(),
+  requiredFields: z.array(z.string()).default([]),
+  optionalFields: z.array(z.string()).default([]),
+  errorCodes: z.array(z.string()).default([]),
+  claims: z.array(z.string()).default([]),
+  exampleRequest: z.unknown().optional(),
+  exampleResponse: z.unknown().optional(),
+});
+
+export const ExtractedApiDocsSchema = z.object({
+  title: z.string(),
+  baseUrl: z.string().optional(),
+  authSummary: z.string().optional(),
+  endpoints: z.array(ExtractedEndpointSchema).default([]),
+  inconsistencies: z.array(z.string()).default([]),
+  documentationMarkdown: z.string(),
+  confidence: z.number().min(0).max(1).optional(),
+  sourceUrls: z.array(z.string()).default([]),
 });
 
 export const ReadinessPackSchema = z.object({
@@ -142,6 +166,8 @@ export type TrajectoryEvent = z.infer<typeof TrajectoryEventSchema>;
 export type AnalysisInput = z.infer<typeof AnalysisInputSchema>;
 export type ReadinessPack = z.infer<typeof ReadinessPackSchema>;
 export type GroundTruth = z.infer<typeof GroundTruthSchema>;
+export type ExtractedEndpoint = z.infer<typeof ExtractedEndpointSchema>;
+export type ExtractedApiDocs = z.infer<typeof ExtractedApiDocsSchema>;
 
 export function generateId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;

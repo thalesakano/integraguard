@@ -181,3 +181,12 @@ export function validateJsonSchema(data: unknown, schema: object): { valid: bool
   const errors = validate.errors?.map((e: { instancePath: string; message?: string }) => `${e.instancePath} ${e.message}`) ?? [];
   return { valid, errors };
 }
+
+export {
+  crawlApiDocs,
+  htmlToText,
+  type CrawlOptions,
+  type CrawledPage,
+  type DocsCrawlResult,
+} from "./docs-crawler.js";
+

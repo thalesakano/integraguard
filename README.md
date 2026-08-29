@@ -42,6 +42,8 @@ cp .env.example .env.local   # optional: OPENAI_API_KEY for LLM mode
 
 docker compose up -d          # sandbox on :4000
 
+pnpm build                    # compile workspace packages (required once)
+
 pnpm dev                      # web UI on :3000
 
 pnpm eval:baseline            # V0 baseline metrics
@@ -69,6 +71,10 @@ Use **authorization-07** — multi-blocker pre-authorization case:
 
 
 Enable **Human gate** in the UI for the best live demo.
+
+
+
+Or use **Docs URL** mode: paste any API reference URL (Stripe-like docs, Mintlify, Readme, Redoc…). IntegraGuard crawls same-origin pages, discovers OpenAPI when present, extracts endpoints (LLM + heuristics), then runs evidence-gated probes against your staging base URL.
 
 
 

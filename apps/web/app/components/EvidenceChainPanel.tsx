@@ -70,7 +70,7 @@ export function EvidenceChainPanel({ chains }: { chains: EvidenceChainNode[] }) 
             <ChainStep label="Doc source" value={chain.docSource} />
             <ChainStep
               label="HTTP probe"
-              value={`${chain.httpStatus} · ${chain.httpEndpoint}`}
+              value={`${chain.httpMethod} ${chain.httpEndpoint} · ${chain.httpStatus}`}
               accent={
                 chain.httpStatus.startsWith("4") || chain.httpStatus.startsWith("5")
                   ? "var(--danger)"

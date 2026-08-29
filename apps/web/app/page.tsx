@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MetricsDashboard } from "@/app/components/MetricsDashboard";
 
-type InputMode = "scenario" | "custom" | "real-api";
+type InputMode = "scenario" | "custom" | "real-api" | "docs-url";
 
 const SCENARIO_LABELS: Record<string, string> = {
   "authorization-01": "Correct contract",
@@ -41,6 +41,16 @@ export default function HomePage() {
   const [llmAvailable, setLlmAvailable] = useState(false);
   const [openApiUrl, setOpenApiUrl] = useState("");
   const [fetchingOpenApi, setFetchingOpenApi] = useState(false);
+  const [docsUrl, setDocsUrl] = useState("https://docs.stripe.com/api");
+  const [fetchingDocs, setFetchingDocs] = useState(false);
+  const [docsCrawlInfo, setDocsCrawlInfo] = useState<{
+    pages: number;
+    endpoints: number;
+    usedLlm: boolean;
+    warnings: string[];
+    endpointList?: { method: string; path: string }[];
+    primaryEndpoint?: { method: string; path: string } | null;
+  } | null>(null);
   const [metrics, setMetrics] = useState<{
     available: boolean;
     baseline?: { weightedF1: number; unsupportedClaimRate: number; precision: number; recall: number };
@@ -114,6 +124,13 @@ export default function HomePage() {
       throw new Error("Select at least one allowed operation");
     }
 
+    const resolvedTarget =
+      payload.targetMode === "real-api" || payload.targetMode === "docs-url"
+        ? "real-api"
+        : payload.targetMode === "scenario"
+          ? "sandbox"
+          : "custom";
+
     const res = await fetch("/api/analyses", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -125,12 +142,7 @@ export default function HomePage() {
         sampleResponse: payload.sampleResponse,
         sandboxUrl: payload.sandboxUrl.replace(/\/+$/, "") + "/",
         scenarioId: payload.scenarioId,
-        targetMode:
-          payload.targetMode === "real-api"
-            ? "real-api"
-            : payload.targetMode === "scenario"
-              ? "sandbox"
-              : "custom",
+        targetMode: resolvedTarget,
         allowedOperations,
         autoApproveProbes: payload.autoApproveProbes,
         useLangGraph,
@@ -211,7 +223,7 @@ export default function HomePage() {
       if (data.description && !documentation.trim()) {
         setDocumentation(`# ${data.title ?? "API"}\n\n${data.description}`);
       }
-      if (mode === "real-api") {
+      if (mode === "real-api" || mode === "docs-url") {
         try {
           const origin = new URL(openApiUrl.trim()).origin;
           setSandboxUrl(`${origin}/`);
@@ -223,6 +235,57 @@ export default function HomePage() {
       alert(err instanceof Error ? err.message : "Failed to fetch OpenAPI");
     } finally {
       setFetchingOpenApi(false);
+    }
+  }
+
+  async function crawlDocsFromUrl() {
+    if (!docsUrl.trim()) return;
+    setFetchingDocs(true);
+    setDocsCrawlInfo(null);
+    try {
+      const res = await fetch("/api/fetch-docs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: docsUrl.trim(), goal }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const detail = data.warnings?.length
+          ? `\n\n${(data.warnings as string[]).slice(0, 3).join("\n")}`
+          : "";
+        throw new Error(`${data.error ?? "Docs crawl failed"}${detail}`);
+      }
+
+      setDocumentation(data.documentation ?? "");
+      // Always replace OpenAPI — stale scenario specs would override crawled endpoints in the mapper
+      setOpenApiSpec(data.openApiSpec ?? "");
+      setSampleRequest(JSON.stringify(data.sampleRequest ?? {}, null, 2));
+      setSampleResponse(
+        data.sampleResponse != null ? JSON.stringify(data.sampleResponse, null, 2) : ""
+      );
+      if (data.suggestedBaseUrl) setSandboxUrl(data.suggestedBaseUrl);
+      if (data.llmAvailable) setUseLlm(true);
+
+      // Replace demo/medical goal when crawling a real vendor docs URL
+      if (
+        data.suggestedGoal &&
+        /pre-authorization|medical procedure|beneficiary/i.test(goal)
+      ) {
+        setGoal(data.suggestedGoal);
+      }
+
+      setDocsCrawlInfo({
+        pages: data.pagesCrawled?.length ?? 0,
+        endpoints: data.extraction?.endpoints?.length ?? data.endpoints?.length ?? 0,
+        usedLlm: Boolean(data.usedLlm),
+        warnings: data.warnings ?? [],
+        endpointList: data.endpoints ?? [],
+        primaryEndpoint: data.primaryEndpoint ?? null,
+      });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Docs crawl failed");
+    } finally {
+      setFetchingDocs(false);
     }
   }
 
@@ -278,9 +341,10 @@ export default function HomePage() {
 
       {metrics && (
         <section className="card mb-8">
-          <h3 className="font-medium mb-1">Measured Improvement</h3>
+          <h3 className="font-medium mb-1">Hackathon eval benchmark (fixed)</h3>
           <p className="text-xs text-[var(--muted)] mb-4">
-            12 synthetic scenarios · ground truth hidden from agents · CI runs eval on every push
+            Precomputed on 12 synthetic scenarios via <code>pnpm eval:*</code> — independent of Docs URL /
+            Real API runs. Per-run results appear on each analysis pack page.
           </p>
           <MetricsDashboard metrics={metrics} />
         </section>
@@ -293,7 +357,7 @@ export default function HomePage() {
         IntegraGuard will produce an evidence-grounded readiness pack.
       </p>
 
-      <div className="flex gap-2 mb-4">
+      <div className="flex flex-wrap gap-2 mb-4">
         <button
           type="button"
           onClick={() => setMode("scenario")}
@@ -315,6 +379,20 @@ export default function HomePage() {
         <button
           type="button"
           onClick={() => {
+            setMode("docs-url");
+            setSandboxUrl("");
+            setDocsCrawlInfo(null);
+            if (llmAvailable) setUseLlm(true);
+          }}
+          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+            mode === "docs-url" ? "bg-[var(--accent)] text-white" : "bg-[var(--surface)] border border-[var(--border)]"
+          }`}
+        >
+          Docs URL
+        </button>
+        <button
+          type="button"
+          onClick={() => {
             setMode("real-api");
             setSandboxUrl("");
           }}
@@ -325,6 +403,19 @@ export default function HomePage() {
           Real API
         </button>
       </div>
+
+      {mode === "docs-url" && (
+        <div className="mb-4 p-4 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 text-sm space-y-2">
+          <p>
+            <strong className="text-[var(--accent)]">Docs URL mode</strong> crawls any API reference site
+            (Stripe-like docs, Mintlify, Readme, Redoc, etc.), extracts endpoints with AI when available, then
+            runs the same evidence-gated probes.
+          </p>
+          <p className="text-[var(--muted)] text-xs">
+            Vendor-agnostic heuristics + LLM structuring. Prefer staging base URLs for live probes.
+          </p>
+        </div>
+      )}
 
       {mode === "real-api" && (
         <div className="mb-4 p-4 rounded-lg border border-[var(--danger)] bg-[var(--danger)]/10 text-sm">
@@ -353,6 +444,62 @@ export default function HomePage() {
             <p className="text-xs text-[var(--muted)] mt-1">
               Loads docs and payloads below — you can edit before running.
             </p>
+          </div>
+        )}
+
+        {mode === "docs-url" && (
+          <div>
+            <label className="block text-sm font-medium mb-1">API documentation URL</label>
+            <div className="flex gap-2">
+              <input
+                className="flex-1 bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 font-mono text-sm"
+                value={docsUrl}
+                onChange={(e) => setDocsUrl(e.target.value)}
+                placeholder="https://docs.example.com/api"
+              />
+              <button
+                type="button"
+                onClick={crawlDocsFromUrl}
+                disabled={fetchingDocs || !docsUrl.trim()}
+                className="px-4 py-2 rounded-lg text-sm bg-[var(--accent)] text-white disabled:opacity-50 whitespace-nowrap"
+              >
+                {fetchingDocs ? "Crawling..." : "Crawl & extract"}
+              </button>
+            </div>
+            <p className="text-xs text-[var(--muted)] mt-1">
+              Generic crawl: same-origin doc links + OpenAPI discovery, then structured extraction.
+              {!llmAvailable && " Set OPENAI_API_KEY for best results (heuristic fallback works without it)."}
+            </p>
+            {docsCrawlInfo && (
+              <div className="mt-2 text-xs text-[var(--muted)] space-y-2">
+                <p>
+                  Extracted <strong className="text-[var(--text)]">{docsCrawlInfo.endpoints}</strong> endpoints
+                  from <strong className="text-[var(--text)]">{docsCrawlInfo.pages}</strong> page(s)
+                  {docsCrawlInfo.usedLlm ? " · LLM structured" : " · heuristic only"}
+                </p>
+                {docsCrawlInfo.primaryEndpoint && (
+                  <p className="text-[var(--accent)]">
+                    Primary probe target: {docsCrawlInfo.primaryEndpoint.method}{" "}
+                    {docsCrawlInfo.primaryEndpoint.path}
+                  </p>
+                )}
+                {docsCrawlInfo.endpointList && docsCrawlInfo.endpointList.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {docsCrawlInfo.endpointList.slice(0, 12).map((ep) => (
+                      <span
+                        key={`${ep.method}-${ep.path}`}
+                        className="px-2 py-0.5 rounded border border-[var(--border)] bg-[var(--bg)] font-mono text-[10px] text-[var(--text)]"
+                      >
+                        {ep.method} {ep.path}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {docsCrawlInfo.warnings.slice(0, 3).map((w) => (
+                  <p key={w} className="text-[var(--warning)]">{w}</p>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -428,21 +575,21 @@ export default function HomePage() {
 
         <div>
           <label className="block text-sm font-medium mb-1">
-            {mode === "real-api" ? "API Base URL" : "Sandbox URL"}
+            {mode === "real-api" || mode === "docs-url" ? "API Base URL" : "Sandbox URL"}
           </label>
           <input
             className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 font-mono text-sm"
             value={sandboxUrl}
             onChange={(e) => setSandboxUrl(e.target.value)}
             placeholder={
-              mode === "real-api"
+              mode === "real-api" || mode === "docs-url"
                 ? "https://staging-api.example.com/"
                 : "http://localhost:4000/scenarios/authorization-07/"
             }
             required
           />
           <p className="text-xs text-[var(--muted)] mt-1">
-            {mode === "real-api"
+            {mode === "real-api" || mode === "docs-url"
               ? "Base URL for HTTP probes (staging recommended). Trailing slash optional."
               : "Local sandbox: http://localhost:4000/scenarios/<scenario-id>/"}
           </p>

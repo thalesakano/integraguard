@@ -11,14 +11,22 @@ export function isLlmAvailable(): boolean {
 
 export async function chatCompletion(
   messages: LlmMessage[],
-  options?: { model?: string; temperature?: number }
+  options?: { model?: string; temperature?: number; timeoutMs?: number }
 ): Promise<string | null> {
+  const result = await chatCompletionDetailed(messages, options);
+  return result.content;
+}
+
+export async function chatCompletionDetailed(
+  messages: LlmMessage[],
+  options?: { model?: string; temperature?: number; timeoutMs?: number }
+): Promise<{ content: string | null; error?: string }> {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) return null;
+  if (!apiKey) return { content: null, error: "OPENAI_API_KEY missing" };
 
   const model = options?.model ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini";
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000);
+  const timeout = setTimeout(() => controller.abort(), options?.timeoutMs ?? 30_000);
 
   try {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -37,17 +45,27 @@ export async function chatCompletion(
     });
 
     if (!res.ok) {
-      console.warn("[llm] OpenAI error:", res.status, await res.text());
-      return null;
+      const body = await res.text();
+      const error = `OpenAI HTTP ${res.status}: ${body.slice(0, 300)}`;
+      console.warn("[llm]", error);
+      return { content: null, error };
     }
 
     const data = (await res.json()) as {
       choices?: { message?: { content?: string } }[];
     };
-    return data.choices?.[0]?.message?.content ?? null;
+    const content = data.choices?.[0]?.message?.content ?? null;
+    if (!content) return { content: null, error: "OpenAI returned empty content" };
+    return { content };
   } catch (err) {
-    console.warn("[llm] request failed:", err);
-    return null;
+    const error =
+      err instanceof Error
+        ? err.name === "AbortError"
+          ? `OpenAI request timed out after ${options?.timeoutMs ?? 30_000}ms`
+          : err.message
+        : String(err);
+    console.warn("[llm] request failed:", error);
+    return { content: null, error };
   } finally {
     clearTimeout(timeout);
   }

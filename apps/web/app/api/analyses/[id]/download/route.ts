@@ -21,7 +21,10 @@ export async function GET(
   const run = getRun(id);
   if (!run?.pack) return NextResponse.json({ error: "Pack not ready" }, { status: 404 });
 
-  const zip = await buildArtifactZip(run.pack, run.trajectories, run.input.sandboxUrl);
+  const zip = await buildArtifactZip(run.pack, run.trajectories, run.input.sandboxUrl, {
+    sampleRequest: run.input.sampleRequest,
+    goal: run.input.goal,
+  });
   return new NextResponse(new Uint8Array(zip), {
     headers: {
       "Content-Type": "application/zip",

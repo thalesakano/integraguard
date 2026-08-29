@@ -81,21 +81,31 @@ export function analyzeProbeResults(
   probeResults: HttpProbeResult[],
   documentation: string,
   requirements: { id: string }[],
-  probePurposes: Record<string, string> = {}
+  probePurposes: Record<string, string> = {},
+  probeMeta: Record<string, { method: string; endpoint: string }> = {}
 ): { findings: Finding[]; evidences: Evidence[] } {
   const findings: Finding[] = [];
   const evidences: Evidence[] = [];
 
   for (const result of probeResults) {
     const evId = generateId("EVD");
+    const meta = probeMeta[result.probeId];
+    const endpointLabel = meta
+      ? `${meta.method} ${meta.endpoint}`
+      : `probe:${result.probeId}`;
     evidences.push({
       id: evId,
       type: "http_probe",
-      sourceReference: `probe:${result.probeId}`,
+      sourceReference: endpointLabel,
       observation: result.error
         ? `Probe failed: ${result.error}`
         : `HTTP ${result.statusCode} in ${result.durationMs}ms`,
-      payload: result,
+      payload: {
+        ...result,
+        method: meta?.method,
+        endpoint: meta?.endpoint,
+        purpose: probePurposes[result.probeId],
+      },
     });
 
     const body = result.body as Record<string, unknown> | null;

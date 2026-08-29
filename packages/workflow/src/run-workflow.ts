@@ -232,11 +232,15 @@ export async function runWorkflowFromCheckpoint(
 
   // Phase: verify — analyze, adversarial verifier, evidence gate
   if (serial.phase === "verify") {
+    const probeMeta = Object.fromEntries(
+      state.probePlans.map((p) => [p.id, { method: p.method, endpoint: p.endpoint }])
+    );
     const analysis = analyzeProbeResults(
       state.probeResults,
       state.input.documentation,
       state.requirements,
-      probePurposes
+      probePurposes,
+      probeMeta
     );
     state.evidences.push(...analysis.evidences);
     state.candidateFindings = analysis.findings;

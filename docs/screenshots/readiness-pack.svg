@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
   <rect width="960" height="540" fill="#0f1419"/>
   <rect x="0" y="0" width="960" height="48" fill="#1a2332" stroke="#2d3a4f"/>
@@ -27,13 +28,13 @@
   <text x="40" y="362" fill="#e7ecf3" font-family="system-ui,sans-serif" font-size="14" font-weight="600">Evidence Chain</text>
   <g font-family="system-ui,sans-serif" font-size="10">
     <rect x="40" y="374" width="72" height="22" rx="6" fill="#3b82f6" opacity="0.2" stroke="#3b82f6"/><text x="48" y="389" fill="#3b82f6">REQ-001</text>
-    <text x="120" y="389" fill="#8b9cb3">�</text>
+    <text x="120" y="389" fill="#8b9cb3">→</text>
     <rect x="132" y="374" width="64" height="22" rx="6" fill="#8b9cb3" opacity="0.15" stroke="#8b9cb3"/><text x="140" y="389" fill="#8b9cb3">Doc</text>
-    <text x="204" y="389" fill="#8b9cb3">�</text>
+    <text x="204" y="389" fill="#8b9cb3">→</text>
     <rect x="216" y="374" width="72" height="22" rx="6" fill="#f59e0b" opacity="0.2" stroke="#f59e0b"/><text x="224" y="389" fill="#f59e0b">HTTP 400</text>
-    <text x="296" y="389" fill="#8b9cb3">�</text>
+    <text x="296" y="389" fill="#8b9cb3">→</text>
     <rect x="308" y="374" width="64" height="22" rx="6" fill="#22c55e" opacity="0.2" stroke="#22c55e"/><text x="316" y="389" fill="#22c55e">Verified</text>
-    <text x="40" y="418" fill="#e7ecf3">beneficiary_id required  docs show beneficiaryCard</text>
+    <text x="40" y="418" fill="#e7ecf3">beneficiary_id required — docs show beneficiaryCard</text>
     <text x="40" y="438" fill="#8b9cb3">contract-tests/contract.test.ts#finding-FND-001</text>
   </g>
 
