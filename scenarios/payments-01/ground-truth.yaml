@@ -1,0 +1,7 @@
+case: payments-01
+expectedDecision: BLOCKED
+blockers:
+  - id: BLK-001
+    severity: critical
+    type: business-error-inside-http-200
+    description: Decline returned as HTTP 200 with settlementState DECLINED

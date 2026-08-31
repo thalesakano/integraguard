@@ -14,4 +14,18 @@ export type {
   SerializableWorkflowState,
   WorkflowPhase,
 } from "./run-workflow.js";
-export { runViaLangGraph, buildIntegraGuardGraph, WORKFLOW_GRAPH_NODES } from "./langgraph-workflow.js";
+export {
+  runViaLangGraph,
+  runAgenticContractWorkflow,
+  approveAgenticProbeAndContinue,
+  buildAgenticContractGraph,
+  WORKFLOW_GRAPH_NODES,
+} from "./langgraph-workflow.js";
+export {
+  serializeAgenticCheckpoint,
+  restoreAgenticStateFromCheckpoint,
+  parseAgenticCheckpoint,
+  createAgenticState,
+} from "./agentic-state.js";
+export { buildIntegraGuardGraph, runLegacyLangGraph } from "./langgraph-legacy.js";
+export { evidenceSupportsDrift, promoteContractDrifts } from "./drift-evidence.js";

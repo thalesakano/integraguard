@@ -18,7 +18,8 @@
   },
   "dependencies": {
     "@integraguard/schemas": "workspace:*",
-    "@integraguard/tools": "workspace:*"
+    "@integraguard/tools": "workspace:*",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "typescript": "^5.7.2"

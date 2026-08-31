@@ -3,14 +3,21 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --filter @integraguard/web dev",
-    "build": "pnpm -r --filter './packages/**' --filter './sandbox' build",
-    "clean": "pnpm -r exec rm -rf dist tsconfig.tsbuildinfo",
+    "build": "pnpm -r --if-present build",
+    "build:packages": "pnpm --filter @integraguard/schemas --filter @integraguard/tools --filter @integraguard/agents --filter @integraguard/workflow --filter @integraguard/evaluator --filter @integraguard/artifact-builder --filter @integraguard/sandbox --filter @integraguard/cli build",
+    "clean": "pnpm -r --if-present exec node -e \"const fs=require('fs'); for (const p of ['dist','.next','tsconfig.tsbuildinfo']) { try { fs.rmSync(p,{recursive:true,force:true}); } catch {} }\"",
+    "verify:build": "tsx scripts/verify-build-outputs.ts",
+    "doctor": "tsx scripts/doctor.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "sandbox": "pnpm --filter @integraguard/sandbox dev",
     "eval:baseline": "tsx scripts/eval.ts baseline",
     "eval:final": "tsx scripts/eval.ts final",
+    "eval:agentic": "tsx scripts/eval-agentic.ts",
     "eval:compare": "tsx scripts/eval-compare.ts",
+    "eval:summary": "tsx scripts/generate-eval-summary.ts",
+    "eval:matrix": "tsx scripts/llm-matrix.ts",
+    "integraguard": "node packages/cli/dist/index.js",
     "scenarios:seed": "tsx scripts/seed-scenarios.ts",
     "changelog:update": "tsx scripts/update-changelog.ts"
   },
@@ -29,5 +36,10 @@
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "pnpm@9.15.0"
+  "packageManager": "pnpm@9.15.0",
+  "pnpm": {
+    "overrides": {
+      "langsmith": ">=0.6.0"
+    }
+  }
 }

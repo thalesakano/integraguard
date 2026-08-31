@@ -16,3 +16,8 @@ runs/v4-evidence-gate/*
 *.log
 coverage/
 .turbo/
+integraguard-out/
+ci-cli-out/
+tmp-cli-out/
+.integraguard/
+.hermes/

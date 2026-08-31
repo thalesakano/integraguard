@@ -1,0 +1,7 @@
+case: catalog-01
+expectedDecision: CONDITIONAL
+blockers:
+  - id: BLK-001
+    severity: major
+    type: pagination-inconsistent
+    description: Docs promise page/totalPages but API returns nextCursor

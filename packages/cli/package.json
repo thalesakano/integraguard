@@ -1,0 +1,32 @@
+{
+  "name": "@integraguard/cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "IntegraGuard CLI — local/CI contract-drift checks (check, snapshot, replay)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thalesakano/integraguard.git",
+    "directory": "packages/cli"
+  },
+  "type": "module",
+  "bin": {
+    "integraguard": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch"
+  },
+  "dependencies": {
+    "@integraguard/artifact-builder": "workspace:*",
+    "@integraguard/schemas": "workspace:*",
+    "@integraguard/tools": "workspace:*",
+    "@integraguard/workflow": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2"
+  }
+}

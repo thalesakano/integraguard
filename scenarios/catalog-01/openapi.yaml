@@ -1,0 +1,20 @@
+openapi: "3.0.0"
+info:
+  title: Catalog API
+  version: "1.0"
+paths:
+  /v1/catalog:
+    get:
+      summary: List catalog
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK

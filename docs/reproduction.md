@@ -39,10 +39,22 @@ Results written to `runs/{experiment}/metrics.json`.
 ## Run Web UI
 
 ```bash
+pnpm build
 pnpm dev
 # Open http://localhost:3000
 # Select authorization-07 demo scenario → Start Analysis
+# Enable LangGraph for multi-node agentic topology (default on)
 ```
+
+## CLI
+
+```bash
+pnpm build
+pnpm integraguard check --config integraguard.config.example.yaml --safe
+# Reports: JSON / Markdown / JUnit / SARIF under integraguard-out/
+```
+
+See [docs/security-model.md](security-model.md) and [docs/llm-matrix.md](llm-matrix.md).
 
 ## Expected Results (authorization-07)
 
@@ -55,7 +67,3 @@ pnpm dev
 - ~3-8 seconds per scenario (no external LLM required — deterministic agents)
 - 12 scenarios: ~1-2 minutes total eval run
 - Sandbox: single Docker container, ~128MB RAM
-
-## Video Script (5 min)
-
-See [docs/demo-script.md](docs/demo-script.md) — full shot-by-shot script for hackathon submission.

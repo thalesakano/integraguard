@@ -1,5 +1,11 @@
 import { generateId } from "@integraguard/schemas";
-import type { AnalysisInput, ReadinessPack, TrajectoryEvent, ProbePlan } from "@integraguard/schemas";
+import type {
+  AnalysisInput,
+  ReadinessPack,
+  TrajectoryEvent,
+  ProbePlan,
+  AgenticCheckpoint,
+} from "@integraguard/schemas";
 import {
   runRequirementsAgent,
   runContractMapper,
@@ -42,12 +48,16 @@ export interface SerializableWorkflowState {
   verifyRetryCount: number;
   status: WorkflowState["status"];
   pack?: ReadinessPack;
+  /** Full agentic state when the run used the LangGraph contract workflow. */
+  agentic?: AgenticCheckpoint;
 }
 
 export interface WorkflowOptions {
   autoApproveProbes?: boolean;
   useLlm?: boolean;
   onEvent?: (event: TrajectoryEvent) => void;
+  /** Non-serializable execution credentials — never copy onto AnalysisInput / checkpoints. */
+  executionHeaders?: Record<string, string>;
 }
 
 export interface WorkflowResult {
@@ -125,6 +135,7 @@ export async function runWorkflowFromCheckpoint(
   options: WorkflowOptions = {}
 ): Promise<WorkflowResult> {
   const autoApprove = options.autoApproveProbes ?? true;
+  const executionHeaders = options.executionHeaders ?? {};
   const state = toWorkflowState(serial);
   const probePurposes = serial.probePurposes;
 
@@ -217,7 +228,7 @@ export async function runWorkflowFromCheckpoint(
         sandboxUrl: state.input.sandboxUrl,
         method: plan.method,
         endpoint: plan.endpoint,
-        headers: plan.headers,
+        headers: { ...executionHeaders, ...plan.headers },
         body: plan.body,
       });
       state.probeResults.push(result);
@@ -286,7 +297,11 @@ export async function runWorkflowFromCheckpoint(
           method: mapping.method,
           endpoint: mapping.endpoint,
           body: state.input.sampleRequest ?? {},
-          headers: { "X-Provider-Id": "PROV-001", "X-API-Key": "test-key" },
+          headers: {
+            ...executionHeaders,
+            "X-Provider-Id": "PROV-001",
+            "X-API-Key": executionHeaders["X-API-Key"] ?? "test-key",
+          },
         });
         state.probeResults.push(result);
         const evId = generateId("EVD");

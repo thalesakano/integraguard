@@ -146,6 +146,29 @@ export function analyzeProbeResults(
           blockerType: "undocumented-required-field",
         });
       }
+
+      // Generic: runtime requires a field not present in documentation
+      const requiredField =
+        msg.match(/([a-zA-Z_][\w]*)\s+is required/i)?.[1] ??
+        msg.match(/required[:\s]+["']?([a-zA-Z_][\w]*)/i)?.[1];
+      if (requiredField && !new RegExp(`\\b${requiredField}\\b`, "i").test(documentation)) {
+        const already = findings.some(
+          (f) =>
+            f.blockerType === "undocumented-required-field" &&
+            f.description.toLowerCase().includes(requiredField.toLowerCase())
+        );
+        if (!already) {
+          findings.push({
+            id: generateId("FND"),
+            requirementId: requirements[0]?.id ?? "REQ-001",
+            severity: "critical",
+            status: "unverified",
+            evidenceIds: [evId],
+            description: `Undocumented required field: API expects ${requiredField} but documentation does not mention it`,
+            blockerType: "undocumented-required-field",
+          });
+        }
+      }
       if (msg.includes("x-provider-id") || msg.includes("provider-id")) {
         findings.push({
           id: generateId("FND"),
@@ -207,14 +230,15 @@ export function analyzeProbeResults(
     }
 
     if (result.statusCode === 200 && body) {
-      if (body.businessStatus === "error" || body.status === "rejected") {
+      if (body.businessStatus === "error" || body.status === "rejected" || body.settlementState === "DECLINED") {
         findings.push({
           id: generateId("FND"),
           requirementId: requirements[1]?.id ?? "REQ-002",
           severity: "critical",
           status: "unverified",
           evidenceIds: [evId],
-          description: "HTTP 200 returned with businessStatus error — documentation claims errors use 4xx/5xx",
+          description:
+            "HTTP 200 returned with business rejection payload — documentation claims errors use 4xx/5xx",
           blockerType: "business-error-inside-http-200",
         });
       }

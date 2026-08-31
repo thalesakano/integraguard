@@ -36,6 +36,7 @@ export async function GET(
       majorCount: verified.filter((f) => f.severity === "major").length,
       unansweredCount: run.pack.unansweredQuestions.length,
       mappingCount: run.pack.mappings.length,
+      sampleRequest: run.input.sampleRequest,
     },
   });
 }

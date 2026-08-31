@@ -17,6 +17,7 @@ export async function GET(
     pendingProbeIds: run.pendingProbeIds,
     pendingProbes: run.pendingProbes ?? [],
     autoApproveProbes: run.autoApproveProbes,
+    useLangGraph: run.useLangGraph,
     input: run.input,
   });
 }

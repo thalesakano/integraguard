@@ -3,14 +3,21 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { RunModeBadge } from "@/app/components/RunModeBadge";
+import { ContractDiffPanel } from "@/app/components/ContractDiffPanel";
+import {
+  InvestigationActions,
+  buildMinimalReproduction,
+  buildVendorQuestion,
+} from "@/app/components/InvestigationActions";
 
 const GRAPH_NODES = [
-  "context-builder",
-  "requirements-agent",
-  "contract-mapper",
-  "probe-planner",
+  "ingest_context",
+  "docs-analyst-agent",
+  "probe-designer-agent",
+  "risk-router",
   "sandbox-http-tools",
-  "adversarial-verifier",
+  "result-analyst-agent",
   "evidence-gate",
   "readiness-pack",
 ];
@@ -30,33 +37,66 @@ interface TrajectoryEvent {
   timestamp: string;
   retry?: number;
   toolCallId?: string;
+  payload?: { label?: string };
 }
 
 interface RunData {
   id: string;
   status: string;
   trajectories: TrajectoryEvent[];
+  input?: { sandboxUrl?: string; sampleRequest?: unknown };
   pack?: {
     decision: string;
     readinessScore: number;
-    findings: { id: string; severity: string; status: string; description: string; evidenceIds: string[] }[];
+    findings: {
+      id: string;
+      severity: string;
+      status: string;
+      description: string;
+      evidenceIds: string[];
+      blockerType?: string;
+    }[];
+    mappings?: { method: string; endpoint: string; requirementId: string }[];
+    unansweredQuestions?: string[];
   };
   pendingProbeIds: string[];
   pendingProbes: ProbePlan[];
+  useLangGraph?: boolean;
+}
+
+function badgeForAgent(agent: string): "agent" | "tool" | "human" | "gate" | "deterministic" {
+  if (agent.includes("human") || agent === "human-gate") return "human";
+  if (agent.includes("gate") || agent === "risk-router") return "gate";
+  if (agent.includes("http") || agent.includes("tool") || agent === "ingest_context") return "tool";
+  if (agent.includes("analyst") || agent.includes("designer") || agent.includes("agent")) return "agent";
+  return "deterministic";
 }
 
 function WorkflowGraph({ trajectories, status }: { trajectories: TrajectoryEvent[]; status: string }) {
   const completedAgents = new Set(trajectories.map((t) => t.agent));
   const lastAgent = trajectories[trajectories.length - 1]?.agent;
+  const nextProbeReason = [...trajectories]
+    .reverse()
+    .find((t) => t.agent === "result-analyst-agent" && t.reason)?.reason;
 
   return (
     <div className="card mb-6">
-      <h3 className="font-medium mb-4">Agent Workflow Graph</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-medium">Agent Workflow Graph</h3>
+        <div className="flex gap-1">
+          <RunModeBadge kind="agent" />
+          <RunModeBadge kind="tool" />
+          <RunModeBadge kind="human" />
+          <RunModeBadge kind="gate" />
+        </div>
+      </div>
       <div className="flex flex-wrap items-center gap-2 text-xs">
         {GRAPH_NODES.map((node, i) => {
-          const mapped = node.replace("readiness-pack", "evidence-gate");
-          const done = completedAgents.has(mapped) || completedAgents.has(node);
-          const active = lastAgent === mapped || lastAgent === node;
+          const done =
+            completedAgents.has(node) ||
+            (node === "readiness-pack" && status === "completed") ||
+            (node === "sandbox-http-tools" && completedAgents.has("sandbox-http-tools"));
+          const active = lastAgent === node;
           return (
             <div key={node} className="flex items-center gap-2">
               {i > 0 && <span className="text-[var(--muted)]">→</span>}
@@ -75,6 +115,9 @@ function WorkflowGraph({ trajectories, status }: { trajectories: TrajectoryEvent
           );
         })}
       </div>
+      {nextProbeReason && status !== "completed" && (
+        <p className="text-xs text-[var(--muted)] mt-3">Next probe reason: {nextProbeReason}</p>
+      )}
     </div>
   );
 }
@@ -127,6 +170,7 @@ export default function RunPage() {
   if (!run) return <p className="text-[var(--muted)]">Loading workflow...</p>;
 
   const verified = run.pack?.findings.filter((f) => f.status === "verified") ?? [];
+  const baseUrl = run.input?.sandboxUrl ?? "";
 
   return (
     <div>
@@ -134,6 +178,11 @@ export default function RunPage() {
         <div>
           <h2 className="text-2xl font-semibold">Live Workflow</h2>
           <p className="text-sm text-[var(--muted)]">Run {id}</p>
+          {run.useLangGraph && (
+            <div className="mt-1">
+              <RunModeBadge kind="agent" />
+            </div>
+          )}
         </div>
         {run.status === "completed" && (
           <Link href={`/runs/${id}/pack`} className="bg-[var(--accent)] text-white px-4 py-2 rounded-lg text-sm">
@@ -146,7 +195,10 @@ export default function RunPage() {
 
       {run.status === "awaiting_approval" && run.pendingProbes.length > 0 && (
         <div className="card mb-6 border-[var(--warning)]">
-          <h3 className="font-medium mb-2 text-[var(--warning)]">Human Approval Required</h3>
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="font-medium text-[var(--warning)]">Human Approval Required</h3>
+            <RunModeBadge kind="human" />
+          </div>
           <p className="text-sm text-[var(--muted)] mb-3">
             Mutating probes paused until you approve side-effect HTTP calls.
           </p>
@@ -175,7 +227,8 @@ export default function RunPage() {
           <div className="space-y-3 max-h-[500px] overflow-y-auto">
             {run.trajectories.map((ev, i) => (
               <div key={i} className="border-l-2 border-[var(--accent)] pl-4 py-1">
-                <div className="flex items-center gap-2 text-sm">
+                <div className="flex items-center gap-2 text-sm flex-wrap">
+                  <RunModeBadge kind={badgeForAgent(ev.agent)} />
                   <span className="font-mono text-[var(--accent)]">{ev.agent}</span>
                   <span className="text-[var(--muted)]">→</span>
                   <span>{ev.action}</span>
@@ -212,13 +265,61 @@ export default function RunPage() {
               ))}
             </div>
           )}
+
+          {(run.pack?.unansweredQuestions?.length ?? 0) > 0 && (
+            <div className="card">
+              <h3 className="font-medium mb-2">Validation gaps</h3>
+              <ul className="text-xs text-[var(--muted)] space-y-1">
+                {run.pack!.unansweredQuestions!.slice(0, 5).map((q, i) => (
+                  <li key={i}>• {q}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
 
       {selectedFinding && (
-        <div className="card mt-6">
-          <h3 className="font-medium mb-3">Evidence Chain — {selectedFinding}</h3>
-          <EvidenceChain runId={id} findingId={selectedFinding} />
+        <div className="card mt-6 space-y-4">
+          <h3 className="font-medium">Investigation — {selectedFinding}</h3>
+          {(() => {
+            const f = verified.find((x) => x.id === selectedFinding);
+            if (!f) return null;
+            const mapping = run.pack?.mappings?.[0];
+            return (
+              <>
+                <ContractDiffPanel
+                  status="DRIFT"
+                  documented={{
+                    label: "Documented",
+                    fields: [{ name: "Expectation", detail: f.description.slice(0, 100), tone: "removed" }],
+                  }}
+                  observed={{
+                    label: "Observed",
+                    fields: [{ name: f.blockerType ?? f.severity, tone: "added" }],
+                  }}
+                  actions={
+                    <InvestigationActions
+                      reproduction={buildMinimalReproduction({
+                        method: mapping?.method ?? "POST",
+                        endpoint: mapping?.endpoint ?? "/",
+                        baseUrl,
+                        body: run.input?.sampleRequest,
+                        finding: f.description,
+                      })}
+                      vendorQuestion={buildVendorQuestion({
+                        finding: f.description,
+                        blockerType: f.blockerType,
+                        method: mapping?.method,
+                        endpoint: mapping?.endpoint,
+                      })}
+                    />
+                  }
+                />
+                <EvidenceChain runId={id} findingId={selectedFinding} />
+              </>
+            );
+          })()}
         </div>
       )}
     </div>
@@ -246,16 +347,22 @@ function EvidenceChain({ runId, findingId }: { runId: string; findingId: string 
   ];
 
   return (
-    <div className="flex flex-wrap gap-2 items-center text-sm">
-      {steps.map(([label, value], i) => (
-        <div key={label} className="flex items-center gap-2">
-          {i > 0 && <span className="text-[var(--muted)]">↓</span>}
-          <div className="bg-[var(--bg)] px-3 py-2 rounded-lg">
-            <p className="text-xs text-[var(--muted)]">{label}</p>
-            <p className="font-mono text-xs max-w-[200px] truncate">{value}</p>
+    <div>
+      <div className="flex gap-1 mb-2">
+        <RunModeBadge kind="tool" />
+        <RunModeBadge kind="gate" />
+      </div>
+      <div className="flex flex-wrap gap-2 items-center text-sm">
+        {steps.map(([label, value], i) => (
+          <div key={label} className="flex items-center gap-2">
+            {i > 0 && <span className="text-[var(--muted)]">↓</span>}
+            <div className="bg-[var(--bg)] px-3 py-2 rounded-lg">
+              <p className="text-xs text-[var(--muted)]">{label}</p>
+              <p className="font-mono text-xs max-w-[200px] truncate">{value}</p>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }

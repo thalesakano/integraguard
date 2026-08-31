@@ -58,6 +58,16 @@ export function runEvidenceGate(input: EvidenceGateInput): EvidenceGateResult {
   const unansweredQuestions: string[] = [];
 
   for (const finding of merged) {
+    // Trusted path: already verified by type-specific promote — do not re-litigate.
+    if (finding.status === "verified") {
+      verifiedFindings.push(finding);
+      continue;
+    }
+    if (finding.status === "rejected") {
+      rejectedFindings.push(finding);
+      continue;
+    }
+
     const linked = finding.evidenceIds.map((id) => evidenceMap.get(id)).filter(Boolean) as Evidence[];
 
     if (linked.length === 0) {
@@ -81,18 +91,51 @@ export function runEvidenceGate(input: EvidenceGateInput): EvidenceGateResult {
   const criticalCount = verifiedFindings.filter((f) => f.severity === "critical").length;
   const majorCount = verifiedFindings.filter((f) => f.severity === "major").length;
 
+  // Coverage: critical requirements need either verifying evidence or a verified finding.
+  const coveredByFinding = new Set(verifiedFindings.map((f) => f.requirementId));
+  const evidenceReqHints = new Set(
+    input.evidences
+      .map((e) => (e.payload as { requirementId?: string } | undefined)?.requirementId)
+      .filter(Boolean) as string[]
+  );
+
+  for (const req of input.requirements) {
+    if (req.severity !== "critical") continue;
+    const covered =
+      coveredByFinding.has(req.id) ||
+      evidenceReqHints.has(req.id) ||
+      // HTTP probes that reference the requirement in observation/source count as coverage attempts —
+      // but without a verified finding we still treat as unanswered (fail-closed).
+      false;
+    if (!covered) {
+      unansweredQuestions.push(`Requirement ${req.id} not fully validated: ${req.description}`);
+    }
+  }
+
+  const uniqueQuestions = [...new Set(unansweredQuestions)];
+  const hasUncoveredCritical = uniqueQuestions.some((q) => q.startsWith("Requirement "));
+
+  // Decision precedence (fail-closed):
+  // verified critical → BLOCKED
+  // verified major → CONDITIONAL
+  // uncovered critical → CONDITIONAL
+  // only fully covered + no verified drift → READY
   let decision: ReadinessDecision = "READY";
   if (criticalCount > 0) decision = "BLOCKED";
   else if (majorCount > 0 || verifiedFindings.length > 0) decision = "CONDITIONAL";
+  else if (hasUncoveredCritical) decision = "CONDITIONAL";
 
-  const penalty = criticalCount * 25 + majorCount * 10 + rejectedFindings.length * 5;
-  const readinessScore = Math.max(0, Math.min(100, 100 - penalty));
-
-  const coveredReqs = new Set(verifiedFindings.map((f) => f.requirementId));
-  for (const req of input.requirements) {
-    if (!coveredReqs.has(req.id) && req.severity === "critical") {
-      unansweredQuestions.push(`Requirement ${req.id} not fully validated: ${req.description}`);
-    }
+  const penalty =
+    criticalCount * 25 +
+    majorCount * 10 +
+    rejectedFindings.length * 5 +
+    (hasUncoveredCritical ? 15 : 0);
+  let readinessScore = Math.max(0, Math.min(100, 100 - penalty));
+  if (uniqueQuestions.length > 0 && readinessScore >= 100) {
+    readinessScore = 99;
+  }
+  if (hasUncoveredCritical && readinessScore > 85) {
+    readinessScore = Math.min(readinessScore, 85);
   }
 
   return {
@@ -100,7 +143,7 @@ export function runEvidenceGate(input: EvidenceGateInput): EvidenceGateResult {
     rejectedFindings,
     decision,
     readinessScore,
-    unansweredQuestions: [...new Set(unansweredQuestions)],
+    unansweredQuestions: uniqueQuestions,
   };
 }
 

@@ -11,6 +11,7 @@
     "@integraguard/agents": "workspace:*",
     "@integraguard/artifact-builder": "workspace:*",
     "@integraguard/schemas": "workspace:*",
+    "@integraguard/tools": "workspace:*",
     "@integraguard/workflow": "workspace:*",
     "next": "^15.1.0",
     "react": "^19.0.0",

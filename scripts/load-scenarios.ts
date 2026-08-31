@@ -29,10 +29,18 @@ function loadScenario(id: string): ScenarioBundle {
     : undefined;
 
   const sandboxBase = process.env.SANDBOX_URL ?? "http://localhost:4000";
+  const goal = groundTruth.case.includes("claims")
+    ? "Submit a medical claim"
+    : groundTruth.case.includes("orders")
+      ? "Create and query customer orders"
+      : groundTruth.case.includes("payments")
+        ? "Submit a payment"
+        : groundTruth.case.includes("catalog")
+          ? "List catalog resources with pagination"
+          : "Submit and query pre-authorization requests for medical procedures";
+
   const input = AnalysisInputSchema.parse({
-    goal: groundTruth.case.includes("claims")
-      ? "Submit a medical claim"
-      : "Submit and query pre-authorization requests for medical procedures",
+    goal,
     documentation,
     openApiSpec,
     sampleRequest,

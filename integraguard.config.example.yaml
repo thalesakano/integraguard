@@ -1,0 +1,30 @@
+version: 1
+goal: Validate staging API contract before integration
+sources:
+  # Prefer URLs or paste docs into sources.documentation
+  # docsUrl: https://vendor.example/docs
+  # openApiUrl: https://vendor.example/openapi.json
+  documentation: |
+    # Example API
+    POST /v1/resource
+    field id is required.
+target:
+  baseUrl: http://localhost:4000/scenarios/orders-01/
+  allowedHosts:
+    - localhost
+  allowedOperations:
+    - GET
+    - POST
+policy:
+  autoApprove:
+    - GET
+  maxProbes: 8
+  timeoutMs: 10000
+  autoApproveProbes: false
+redaction:
+  fields:
+    - email
+    - document
+credentials:
+  # Reference env var NAMES only — never paste secrets into this file
+  apiKeyEnv: INTEGRAGUARD_API_KEY

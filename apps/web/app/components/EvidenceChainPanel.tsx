@@ -61,6 +61,12 @@ export function EvidenceChainPanel({ chains }: { chains: EvidenceChainNode[] }) 
               <span className="text-xs text-[var(--muted)] font-mono">{chain.blockerType}</span>
             )}
             <span className="text-xs text-[var(--success)]">verified</span>
+            <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded border border-[var(--success)] text-[var(--success)]">
+              Deterministic decision
+            </span>
+            <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded border border-[var(--muted)] text-[var(--muted)]">
+              Tool observation
+            </span>
           </div>
 
           <p className="text-sm mb-3">{chain.hypothesis}</p>

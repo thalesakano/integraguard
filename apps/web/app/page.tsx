@@ -26,13 +26,13 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [scenarios, setScenarios] = useState<string[]>([]);
   const [mode, setMode] = useState<InputMode>("scenario");
-  const [scenarioId, setScenarioId] = useState("authorization-07");
-  const [goal, setGoal] = useState("Submit and query pre-authorization requests for medical procedures");
+  const [scenarioId, setScenarioId] = useState("authorization-06");
+  const [goal, setGoal] = useState("Validate documented error semantics before integration");
   const [documentation, setDocumentation] = useState("");
   const [openApiSpec, setOpenApiSpec] = useState("");
   const [sampleRequest, setSampleRequest] = useState("{}");
   const [sampleResponse, setSampleResponse] = useState("");
-  const [sandboxUrl, setSandboxUrl] = useState("http://localhost:4000/scenarios/authorization-07/");
+  const [sandboxUrl, setSandboxUrl] = useState("http://localhost:4000/scenarios/authorization-06/");
   const [allowedGet, setAllowedGet] = useState(true);
   const [allowedPost, setAllowedPost] = useState(true);
   const [autoApproveProbes, setAutoApproveProbes] = useState(false);
@@ -175,19 +175,19 @@ export default function HomePage() {
     setDemoLoading(true);
     try {
       setMode("scenario");
-      setScenarioId("authorization-07");
+      setScenarioId("authorization-06");
       setAutoApproveProbes(false);
       setUseLangGraph(true);
-      const scenario = await loadScenario("authorization-07");
+      const scenario = await loadScenario("authorization-06");
       if (!scenario) throw new Error("Failed to load demo scenario");
       const runId = await submitAnalysisPayload({
-        goal: "Submit and query pre-authorization requests for medical procedures",
+        goal: "Validate documented error semantics before integration",
         documentation: scenario.documentation,
         openApiSpec: scenario.openApiSpec,
         sampleRequest: scenario.sampleRequest,
         sampleResponse: scenario.sampleResponse,
-        sandboxUrl: "http://localhost:4000/scenarios/authorization-07/",
-        scenarioId: "authorization-07",
+        sandboxUrl: "http://localhost:4000/scenarios/authorization-06/",
+        scenarioId: "authorization-06",
         targetMode: "scenario",
         autoApproveProbes: false,
       });
@@ -328,7 +328,7 @@ export default function HomePage() {
             disabled={demoLoading || loading}
             className="bg-[var(--accent)] hover:opacity-90 disabled:opacity-50 text-white px-5 py-2.5 rounded-lg font-medium text-sm"
           >
-            {demoLoading ? "Starting demo..." : "Run hackathon demo (authorization-07)"}
+            {demoLoading ? "Starting demo..." : "Run hackathon demo (authorization-06)"}
           </button>
           <a
             href="#create-analysis"

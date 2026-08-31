@@ -4,6 +4,7 @@ import type { ReadinessPack, TrajectoryEvent, Evidence, ContractMapping } from "
 export interface ArtifactBundle {
   "integration-readiness-report.md": string;
   "vendor-clarification-email.md": string;
+  "vendor-issue.md": string;
   "typescript-client.ts": string;
   "postman-collection.json": string;
   "agent-trajectories.json": string;
@@ -97,7 +98,7 @@ export function buildVendorEmail(pack: ReadinessPack): string {
   const blockers = pack.findings.filter((f) => f.status === "verified");
   let email = `Subject: Technical Clarifications Required — Integration Preflight (${pack.runId})\n\n`;
   email += `Dear API Team,\n\n`;
-  email += `We performed an integration preflight analysis and identified ${blockers.length} item(s) requiring clarification before we can proceed.\n\n`;
+  email += `We performed a contract-drift preflight (documented expectations vs observed API behavior) and identified ${blockers.length} verified mismatch(es) before integration can safely proceed.\n\n`;
 
   if (blockers.length > 0) {
     email += `## Blockers\n\n`;
@@ -241,6 +242,85 @@ export function buildPostmanCollection(
   };
 }
 
+function isMutatingMethod(method: string): boolean {
+  return ["POST", "PUT", "PATCH", "DELETE"].includes(method.toUpperCase());
+}
+
+/** Drift/blocker-specific assertion body (safe string literals via JSON.stringify). */
+function assertionForBlocker(
+  blockerType: string | undefined,
+  method: string,
+  path: string,
+  needsBody: boolean
+): string {
+  const methodLit = JSON.stringify(method);
+  const pathLit = JSON.stringify(path);
+  const bodyLine = needsBody ? `body: JSON.stringify(SAMPLE_REQUEST),` : "";
+  const fetchBlock = `const res = await fetch(BASE_URL + ${pathLit}, {
+      method: ${methodLit},
+      headers: { "Content-Type": "application/json" },
+      ${bodyLine}
+    });
+    const text = await res.text();
+    let body: unknown = text;
+    try { body = JSON.parse(text); } catch { /* keep text */ }`;
+
+  switch (blockerType) {
+    case "undocumented-required-field":
+      return `${fetchBlock}
+    // Required-field / schema rejection should surface as 4xx
+    expect(res.status).toBeGreaterThanOrEqual(400);
+    expect(res.status).toBeLessThan(500);
+    expect(body).toBeDefined();`;
+    case "schema-divergent":
+      return `${fetchBlock}
+    expect([400, 422].includes(res.status) || res.status >= 400).toBe(true);
+    expect(body).toBeDefined();`;
+    case "business-error-inside-http-200":
+      return `${fetchBlock}
+    expect(res.status).toBe(200);
+    const rec = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+    expect(
+      rec.businessStatus === "error" ||
+        rec.status === "rejected" ||
+        rec.settlementState === "DECLINED" ||
+        Boolean(rec.error)
+    ).toBe(true);`;
+    case "missing-idempotency":
+      return `${fetchBlock}
+    const res2 = await fetch(BASE_URL + ${pathLit}, {
+      method: ${methodLit},
+      headers: { "Content-Type": "application/json", "Idempotency-Key": "integraguard-idem-test" },
+      ${bodyLine}
+    });
+    expect(res.status).toBeGreaterThan(0);
+    expect(res2.status).toBeGreaterThan(0);
+    // Pair semantics: both responses defined (assert divergence in follow-up)
+    expect(await res2.text()).toBeDefined();`;
+    case "pagination-inconsistent":
+      return `${fetchBlock}
+    expect(res.status).toBeGreaterThan(0);
+    const rec = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+    const hasPage = "nextCursor" in rec || "cursor" in rec || "page" in rec || "items" in rec;
+    expect(hasPage || body).toBeTruthy();`;
+    case "endpoint-not-found":
+      return `${fetchBlock}
+    expect(res.status).toBe(404);`;
+    case "auth-divergent":
+      return `// Auth drift: safe template — run only with controlled credentials
+    const res = await fetch(BASE_URL + ${pathLit}, {
+      method: ${methodLit},
+      headers: { "Content-Type": "application/json" },
+      ${bodyLine}
+    });
+    expect([401, 403].includes(res.status) || res.status > 0).toBe(true);`;
+    default:
+      return `${fetchBlock}
+    expect(body).toBeDefined();
+    expect(res.status).toBeGreaterThan(0);`;
+  }
+}
+
 export function buildContractTests(
   pack: ReadinessPack,
   sandboxUrl: string,
@@ -250,60 +330,70 @@ export function buildContractTests(
   const post = primaryPostMapping(pack);
   const get = pack.mappings.find((m) => m.method === "GET");
   const sampleJson = JSON.stringify(ctx?.sampleRequest ?? {}, null, 2);
+  const runIdLit = JSON.stringify(pack.runId);
 
-  const endpointCases = uniqueEndpoints(pack)
-    .slice(0, 8)
-    .map((ep, i) => {
-      const needsBody = ["POST", "PUT", "PATCH"].includes(ep.method);
-      return `
-  it("endpoint ${i + 1}: ${ep.method} ${ep.path} is reachable or returns documented client error", async () => {
+  const safeEndpointCases: string[] = [];
+  const mutatingEndpointCases: string[] = [];
+
+  for (const [i, ep] of uniqueEndpoints(pack).slice(0, 8).entries()) {
+    const needsBody = ["POST", "PUT", "PATCH"].includes(ep.method);
+    const block = `
+  it(${JSON.stringify(`endpoint ${i + 1}: ${ep.method} ${ep.path} is reachable or returns documented client error`)}, async () => {
     const res = await fetch(BASE_URL + ${JSON.stringify(ep.path)}, {
       method: ${JSON.stringify(ep.method)},
       headers: { "Content-Type": "application/json" },
       ${needsBody ? `body: JSON.stringify(SAMPLE_REQUEST),` : ""}
     });
-    // 2xx success, or 4xx/401/403 = API exists and rejected the probe (auth/schema)
     expect([0, 404, 502, 503].includes(res.status)).toBe(false);
   });`;
-    })
-    .join("\n");
+    if (isMutatingMethod(ep.method)) mutatingEndpointCases.push(block);
+    else safeEndpointCases.push(block);
+  }
 
-  const findingCases = blockers
-    .map((b, i) => {
-      const mapping =
-        pack.mappings.find((m) => m.requirementId === b.requirementId) ?? post ?? get;
-      const method = mapping?.method ?? "POST";
-      const path = mapping?.endpoint ?? "/";
-      const needsBody = ["POST", "PUT", "PATCH"].includes(method);
-      return `
-  it("finding ${i + 1}: ${b.blockerType ?? "blocker"} — ${b.requirementId}", async () => {
-    const res = await fetch(BASE_URL + ${JSON.stringify(path)}, {
-      method: ${JSON.stringify(method)},
-      headers: { "Content-Type": "application/json" },
-      ${needsBody ? `body: JSON.stringify(SAMPLE_REQUEST),` : ""}
-    });
-    const text = await res.text();
-    let body: unknown = text;
-    try { body = JSON.parse(text); } catch { /* keep text */ }
-    expect(body).toBeDefined();
-    // Captures the divergence observed in this run for ${b.id}
-    expect(res.status).toBeGreaterThan(0);
+  const safeFindingCases: string[] = [];
+  const mutatingFindingCases: string[] = [];
+
+  for (const [i, b] of blockers.entries()) {
+    const mapping =
+      pack.mappings.find((m) => m.requirementId === b.requirementId) ?? post ?? get;
+    const method = mapping?.method ?? "POST";
+    const path = mapping?.endpoint ?? "/";
+    const needsBody = ["POST", "PUT", "PATCH"].includes(method);
+    const title = JSON.stringify(
+      `finding ${i + 1}: ${b.blockerType ?? "blocker"} — ${b.requirementId}`
+    );
+    const asserts = assertionForBlocker(b.blockerType, method, path, needsBody);
+    const block = `
+  it(${title}, async () => {
+    ${asserts}
   });`;
-    })
-    .join("\n");
+    if (isMutatingMethod(method)) mutatingFindingCases.push(block);
+    else safeFindingCases.push(block);
+  }
+
+  const mutatingDescribe =
+    mutatingEndpointCases.length + mutatingFindingCases.length > 0
+      ? `
+const allowMutation = process.env.INTEGRAGUARD_ALLOW_MUTATION === "1";
+(allowMutation ? describe : describe.skip)("mutating probes (INTEGRAGUARD_ALLOW_MUTATION=1)", () => {
+${mutatingEndpointCases.join("\n")}
+${mutatingFindingCases.join("\n")}
+});`
+      : "";
 
   return `import { describe, it, expect } from "vitest";
 
 const BASE_URL = ${JSON.stringify(sandboxUrl.replace(/\/$/, ""))};
 const SAMPLE_REQUEST = ${sampleJson} as Record<string, unknown>;
 
-describe("IntegraGuard Contract Tests — ${pack.runId}", () => {
+describe("IntegraGuard Contract Tests — " + ${runIdLit}, () => {
   it("base URL is configured", () => {
     expect(BASE_URL.length).toBeGreaterThan(0);
   });
-${endpointCases}
-${findingCases}
+${safeEndpointCases.join("\n")}
+${safeFindingCases.join("\n")}
 });
+${mutatingDescribe}
 `;
 }
 
@@ -316,6 +406,7 @@ export function buildArtifacts(
   return {
     "integration-readiness-report.md": buildReport(pack, ctx),
     "vendor-clarification-email.md": buildVendorEmail(pack),
+    "vendor-issue.md": buildVendorIssue(pack),
     "typescript-client.ts": buildTypeScriptClient(pack, sandboxUrl),
     "postman-collection.json": JSON.stringify(buildPostmanCollection(pack, sandboxUrl, ctx), null, 2),
     "agent-trajectories.json": JSON.stringify(trajectories, null, 2),
@@ -435,4 +526,29 @@ export function buildAllEvidenceChains(
   return pack.findings
     .filter((f) => f.status === "verified")
     .map((f) => buildEvidenceChainNode(f.id, pack, trajectories));
+}
+
+export {
+  buildCiReports,
+  buildMarkdownCiReport,
+  buildJunitReport,
+  buildSarifReport,
+  type CiReportBundle,
+} from "./ci-reporters.js";
+
+/** Neutral GitHub-style issue body for a verified drift */
+export function buildVendorIssue(pack: ReadinessPack): string {
+  const drifts = pack.findings.filter((f) => f.status === "verified");
+  let md = `## Contract drift detected by IntegraGuard\n\n`;
+  md += `**Decision:** ${pack.decision} · **Score:** ${pack.readinessScore} · **Run:** \`${pack.runId}\`\n\n`;
+  md += `This report compares **documented** behavior with **observed** sandbox/runtime responses. It is not an accusation — please confirm the intended contract.\n\n`;
+  for (const d of drifts) {
+    const mapping = pack.mappings.find((m) => m.requirementId === d.requirementId);
+    md += `### ${d.severity}: ${d.blockerType ?? "drift"}\n`;
+    md += `- **Summary:** ${d.description}\n`;
+    if (mapping) md += `- **Endpoint:** \`${mapping.method} ${mapping.endpoint}\`\n`;
+    md += `- **Evidence:** ${d.evidenceIds.join(", ")}\n`;
+    md += `- **Question:** What is the canonical contract we should implement?\n\n`;
+  }
+  return md;
 }

@@ -29,6 +29,12 @@ jobs:
       - name: Build packages
         run: pnpm build
 
+      - name: Verify build outputs
+        run: pnpm verify:build
+
+      - name: Unit tests
+        run: pnpm test
+
       - name: Start sandbox
         run: docker compose up -d --build --wait
 
@@ -66,6 +72,17 @@ jobs:
             console.log('Weighted F1:', f1);
           "
 
+      - name: CLI smoke (safe / GET-oriented)
+        run: |
+          set +e
+          pnpm integraguard check --config integraguard.config.example.yaml --safe --out ci-cli-out
+          code=$?
+          set -e
+          echo "CLI exit code: $code"
+          if [ "$code" -eq 2 ]; then exit 2; fi
+          test -d ci-cli-out
+          ls -la ci-cli-out
+
       - name: Upload metrics artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -73,3 +90,5 @@ jobs:
           path: |
             runs/v0-baseline/metrics.json
             runs/v4-evidence-gate/metrics.json
+            ci-cli-out/**
+        if: always()

@@ -5,18 +5,18 @@
     "weightedF1": 1,
     "precision": 1,
     "recall": 1,
-    "truePositives": 14,
+    "truePositives": 17,
     "falsePositives": 0,
     "falseNegatives": 0,
     "unsupportedClaimRate": 0,
     "executableArtifactRate": 1,
-    "decisionMatch": true
+    "decisionMatch": false
   },
   "operational": {
-    "scenarioCount": 12,
-    "totalRuntimeMs": 182,
+    "scenarioCount": 15,
+    "totalRuntimeMs": 211,
     "medianRuntimeMs": 9,
-    "avgRuntimeMsPerCase": 14.333333333333334,
+    "avgRuntimeMsPerCase": 13.066666666666666,
     "totalVerifierRetries": 0,
     "costPerCaseUsd": 0,
     "llmEnabled": false
@@ -33,9 +33,9 @@
         "falseNegatives": 0,
         "unsupportedClaimRate": 0,
         "executableArtifactRate": 1,
-        "decisionMatch": true
+        "decisionMatch": false
       },
-      "runtimeMs": 51,
+      "runtimeMs": 53,
       "verifierRetries": 0
     },
     {
@@ -49,7 +49,7 @@
         "falseNegatives": 0,
         "unsupportedClaimRate": 0,
         "executableArtifactRate": 1,
-        "decisionMatch": true
+        "decisionMatch": false
       },
       "runtimeMs": 11,
       "verifierRetries": 0
@@ -131,7 +131,7 @@
         "executableArtifactRate": 1,
         "decisionMatch": true
       },
-      "runtimeMs": 22,
+      "runtimeMs": 21,
       "verifierRetries": 0
     },
     {
@@ -147,7 +147,7 @@
         "executableArtifactRate": 1,
         "decisionMatch": true
       },
-      "runtimeMs": 9,
+      "runtimeMs": 10,
       "verifierRetries": 0
     },
     {
@@ -205,6 +205,54 @@
         "precision": 1,
         "recall": 1,
         "truePositives": 3,
+        "falsePositives": 0,
+        "falseNegatives": 0,
+        "unsupportedClaimRate": 0,
+        "executableArtifactRate": 1,
+        "decisionMatch": true
+      },
+      "runtimeMs": 8,
+      "verifierRetries": 0
+    },
+    {
+      "caseId": "catalog-01",
+      "metrics": {
+        "weightedF1": 1,
+        "precision": 1,
+        "recall": 1,
+        "truePositives": 1,
+        "falsePositives": 0,
+        "falseNegatives": 0,
+        "unsupportedClaimRate": 0,
+        "executableArtifactRate": 1,
+        "decisionMatch": true
+      },
+      "runtimeMs": 4,
+      "verifierRetries": 0
+    },
+    {
+      "caseId": "orders-01",
+      "metrics": {
+        "weightedF1": 1,
+        "precision": 1,
+        "recall": 1,
+        "truePositives": 1,
+        "falsePositives": 0,
+        "falseNegatives": 0,
+        "unsupportedClaimRate": 0,
+        "executableArtifactRate": 1,
+        "decisionMatch": true
+      },
+      "runtimeMs": 10,
+      "verifierRetries": 0
+    },
+    {
+      "caseId": "payments-01",
+      "metrics": {
+        "weightedF1": 1,
+        "precision": 1,
+        "recall": 1,
+        "truePositives": 1,
         "falsePositives": 0,
         "falseNegatives": 0,
         "unsupportedClaimRate": 0,

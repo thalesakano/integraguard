@@ -1,0 +1,7 @@
+case: orders-01
+expectedDecision: BLOCKED
+blockers:
+  - id: BLK-001
+    severity: critical
+    type: undocumented-required-field
+    description: Runtime requires sku but docs only document customerId

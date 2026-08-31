@@ -2,21 +2,21 @@
   "experiment": "v0-baseline",
   "mode": "baseline",
   "aggregated": {
-    "weightedF1": 0.16666666666666666,
-    "precision": 0.16666666666666666,
-    "recall": 0.16666666666666666,
+    "weightedF1": 0.13333333333333333,
+    "precision": 0.13333333333333333,
+    "recall": 0.13333333333333333,
     "truePositives": 0,
     "falsePositives": 0,
-    "falseNegatives": 14,
+    "falseNegatives": 17,
     "unsupportedClaimRate": 0.6666666666666666,
     "executableArtifactRate": 1,
     "decisionMatch": false
   },
   "operational": {
-    "scenarioCount": 12,
-    "totalRuntimeMs": 89,
+    "scenarioCount": 15,
+    "totalRuntimeMs": 114,
     "medianRuntimeMs": 2,
-    "avgRuntimeMsPerCase": 6.916666666666667,
+    "avgRuntimeMsPerCase": 6.8,
     "totalVerifierRetries": 0,
     "costPerCaseUsd": 0,
     "llmEnabled": false
@@ -35,7 +35,7 @@
         "executableArtifactRate": 1,
         "decisionMatch": true
       },
-      "runtimeMs": 40,
+      "runtimeMs": 68,
       "verifierRetries": 0
     },
     {
@@ -51,7 +51,7 @@
         "executableArtifactRate": 1,
         "decisionMatch": false
       },
-      "runtimeMs": 26,
+      "runtimeMs": 7,
       "verifierRetries": 0
     },
     {
@@ -83,7 +83,7 @@
         "executableArtifactRate": 1,
         "decisionMatch": false
       },
-      "runtimeMs": 1,
+      "runtimeMs": 2,
       "verifierRetries": 0
     },
     {
@@ -99,7 +99,7 @@
         "executableArtifactRate": 1,
         "decisionMatch": false
       },
-      "runtimeMs": 2,
+      "runtimeMs": 4,
       "verifierRetries": 0
     },
     {
@@ -131,7 +131,7 @@
         "executableArtifactRate": 1,
         "decisionMatch": false
       },
-      "runtimeMs": 2,
+      "runtimeMs": 3,
       "verifierRetries": 0
     },
     {
@@ -147,7 +147,7 @@
         "executableArtifactRate": 1,
         "decisionMatch": false
       },
-      "runtimeMs": 1,
+      "runtimeMs": 2,
       "verifierRetries": 0
     },
     {
@@ -191,11 +191,11 @@
         "truePositives": 0,
         "falsePositives": 0,
         "falseNegatives": 1,
-        "unsupportedClaimRate": 1,
+        "unsupportedClaimRate": 0,
         "executableArtifactRate": 1,
-        "decisionMatch": true
+        "decisionMatch": false
       },
-      "runtimeMs": 1,
+      "runtimeMs": 2,
       "verifierRetries": 0
     },
     {
@@ -207,6 +207,54 @@
         "truePositives": 0,
         "falsePositives": 0,
         "falseNegatives": 3,
+        "unsupportedClaimRate": 1,
+        "executableArtifactRate": 1,
+        "decisionMatch": false
+      },
+      "runtimeMs": 2,
+      "verifierRetries": 0
+    },
+    {
+      "caseId": "catalog-01",
+      "metrics": {
+        "weightedF1": 0,
+        "precision": 0,
+        "recall": 0,
+        "truePositives": 0,
+        "falsePositives": 0,
+        "falseNegatives": 1,
+        "unsupportedClaimRate": 1,
+        "executableArtifactRate": 1,
+        "decisionMatch": true
+      },
+      "runtimeMs": 1,
+      "verifierRetries": 0
+    },
+    {
+      "caseId": "orders-01",
+      "metrics": {
+        "weightedF1": 0,
+        "precision": 0,
+        "recall": 0,
+        "truePositives": 0,
+        "falsePositives": 0,
+        "falseNegatives": 1,
+        "unsupportedClaimRate": 1,
+        "executableArtifactRate": 1,
+        "decisionMatch": false
+      },
+      "runtimeMs": 1,
+      "verifierRetries": 0
+    },
+    {
+      "caseId": "payments-01",
+      "metrics": {
+        "weightedF1": 0,
+        "precision": 0,
+        "recall": 0,
+        "truePositives": 0,
+        "falsePositives": 0,
+        "falseNegatives": 1,
         "unsupportedClaimRate": 1,
         "executableArtifactRate": 1,
         "decisionMatch": false

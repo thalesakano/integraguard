@@ -6,6 +6,7 @@ import {
   pickSamplePayloads,
   buildOpenApiFromExtraction,
 } from "@integraguard/agents";
+import { demoModeDocsUrlViolation } from "@/lib/deployment-mode";
 
 function isAllowedUrl(raw: string): URL | null {
   try {
@@ -41,6 +42,13 @@ export async function POST(req: Request) {
     goal?: string;
     maxPages?: number;
   };
+
+  if (body.url) {
+    const demoViolation = demoModeDocsUrlViolation(body.url);
+    if (demoViolation) {
+      return NextResponse.json({ error: demoViolation }, { status: 403 });
+    }
+  }
 
   const url = body.url ? isAllowedUrl(body.url) : null;
   if (!url) {

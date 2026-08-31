@@ -61,6 +61,12 @@ export const ProbePlanSchema = z.object({
   requiresApproval: z.boolean(),
   headers: z.record(z.string()).optional(),
   body: z.unknown().optional(),
+  /** Preferred correlation to DocumentedExpectation.id */
+  expectationId: z.string().optional(),
+  expectedEvidence: z.string().optional(),
+  /** Attempt number — used so counterprobes/retries are not deduped away */
+  attempt: z.number().int().positive().optional(),
+  retryOfProbeId: z.string().optional(),
 });
 
 export const HttpProbeResultSchema = z.object({
@@ -101,6 +107,17 @@ export const AnalysisInputSchema = z.object({
   sandboxUrl: z.string().url(),
   scenarioId: z.string().optional(),
   allowedOperations: z.array(z.string()).default(["GET", "POST"]),
+  /** Operator-controlled host allowlist (fail-closed when empty at probe time). */
+  allowedHosts: z.array(z.string()).optional(),
+  maxProbes: z.number().int().positive().optional(),
+  redactionFields: z.array(z.string()).optional(),
+  /** Env var *names* only — never secret values. Resolved at execution time. */
+  credentialEnvRefs: z
+    .object({
+      apiKeyEnv: z.string().optional(),
+      bearerTokenEnv: z.string().optional(),
+    })
+    .optional(),
   useLlm: z.boolean().optional(),
   targetMode: z.enum(["sandbox", "custom", "real-api", "docs-url"]).optional(),
 });
@@ -168,6 +185,59 @@ export type ReadinessPack = z.infer<typeof ReadinessPackSchema>;
 export type GroundTruth = z.infer<typeof GroundTruthSchema>;
 export type ExtractedEndpoint = z.infer<typeof ExtractedEndpointSchema>;
 export type ExtractedApiDocs = z.infer<typeof ExtractedApiDocsSchema>;
+
+export {
+  DocumentedExpectationSchema,
+  ContractObservationSchema,
+  ContractDriftSchema,
+  ContractDriftTypeSchema,
+  ContractDriftStatusSchema,
+  ExpectationCategorySchema,
+  HttpMethodSchema,
+  RedactedRequestSchema,
+  RedactedResponseSchema,
+  type DocumentedExpectation,
+  type ContractObservation,
+  type ContractDrift,
+  type ContractDriftType,
+} from "./contract-drift.js";
+
+export {
+  ProjectConfigSchema,
+  type ProjectConfig,
+} from "./project-config.js";
+
+import {
+  buildAgenticCheckpointSchema,
+  bindAgenticCheckpointSchema,
+  AgenticObservationSchema,
+  parseAgenticCheckpoint,
+  safeParseAgenticCheckpoint,
+  type AgenticCheckpoint,
+  type AgenticObservation,
+} from "./agentic-checkpoint.js";
+
+const AgenticCheckpointSchema = buildAgenticCheckpointSchema({
+  AnalysisInputSchema,
+  ProbePlanSchema,
+  HttpProbeResultSchema,
+  EvidenceSchema,
+  RequirementSchema,
+  ContractMappingSchema,
+  FindingSchema,
+  TrajectoryEventSchema,
+  ReadinessPackSchema,
+});
+bindAgenticCheckpointSchema(AgenticCheckpointSchema);
+
+export {
+  AgenticCheckpointSchema,
+  AgenticObservationSchema,
+  parseAgenticCheckpoint,
+  safeParseAgenticCheckpoint,
+  type AgenticCheckpoint,
+  type AgenticObservation,
+};
 
 export function generateId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;

@@ -4,6 +4,14 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { EvidenceChainPanel } from "@/app/components/EvidenceChainPanel";
+import { ContractDiffPanel } from "@/app/components/ContractDiffPanel";
+import { ExpectationCard } from "@/app/components/ExpectationCard";
+import { RunModeBadge } from "@/app/components/RunModeBadge";
+import {
+  InvestigationActions,
+  buildMinimalReproduction,
+  buildVendorQuestion,
+} from "@/app/components/InvestigationActions";
 
 interface EvidenceChainNode {
   findingId: string;
@@ -21,6 +29,15 @@ interface EvidenceChainNode {
   status: string;
 }
 
+interface PackFinding {
+  id?: string;
+  severity: string;
+  status: string;
+  description: string;
+  blockerType?: string;
+  requirementId?: string;
+}
+
 interface RunSummary {
   goal: string;
   sandboxUrl: string;
@@ -34,6 +51,7 @@ interface RunSummary {
   majorCount: number;
   unansweredCount: number;
   mappingCount: number;
+  sampleRequest?: unknown;
 }
 
 export default function PackPage() {
@@ -42,7 +60,7 @@ export default function PackPage() {
   const [pack, setPack] = useState<{
     decision: string;
     readinessScore: number;
-    findings: { severity: string; status: string; description: string }[];
+    findings: PackFinding[];
     unansweredQuestions: string[];
     reportPreview: string;
     mappings?: { method: string; endpoint: string; requirementId: string; confidence: number }[];
@@ -62,9 +80,11 @@ export default function PackPage() {
 
   const critical = pack.findings.filter((f) => f.status === "verified" && f.severity === "critical").length;
   const major = pack.findings.filter((f) => f.status === "verified" && f.severity === "major").length;
-  const verified = pack.findings.filter((f) => f.status === "verified").length;
+  const verified = pack.findings.filter((f) => f.status === "verified");
+  const inconclusive = pack.findings.filter((f) => f.status !== "verified");
   const summary = pack.runSummary;
   const endpoints = summary?.endpoints ?? [];
+  const baseUrl = summary?.sandboxUrl ?? "";
 
   return (
     <div>
@@ -77,6 +97,11 @@ export default function PackPage() {
           <p className="text-sm text-[var(--muted)] mt-1">
             Results for this analysis run only — not the fixed hackathon eval suite.
           </p>
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            <RunModeBadge kind="gate" />
+            <RunModeBadge kind="tool" />
+            <RunModeBadge kind="agent" />
+          </div>
         </div>
         <a
           href={`/api/analyses/${id}/download`}
@@ -106,7 +131,7 @@ export default function PackPage() {
           </div>
         </div>
         <p className="text-center text-sm text-[var(--muted)] mt-4">
-          {verified} verified findings · {pack.unansweredQuestions.length} unanswered questions
+          {verified.length} verified findings · {pack.unansweredQuestions.length} unanswered questions
         </p>
       </div>
 
@@ -155,6 +180,118 @@ export default function PackPage() {
         </div>
       )}
 
+      {(pack.requirements?.length ?? 0) > 0 && (
+        <div className="card mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <h3 className="font-medium">Documented expectations</h3>
+            <RunModeBadge kind="agent" />
+          </div>
+          <div className="grid gap-2 md:grid-cols-2">
+            {pack.requirements!.slice(0, 6).map((r) => (
+              <ExpectationCard
+                key={r.id}
+                statement={r.description}
+                source={r.id}
+                category="requirement"
+                confidence={0.8}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="card mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <h3 className="font-medium">Contract drift (documented vs observed)</h3>
+          <RunModeBadge kind="gate" />
+        </div>
+        <p className="text-xs text-[var(--muted)] mb-4">
+          Verified mismatches between documentation and runtime probes for this run.
+        </p>
+        <div className="space-y-3">
+          {verified.map((f, i) => {
+            const mapping =
+              pack.mappings?.find((m) => m.requirementId === f.requirementId) ??
+              pack.mappings?.[0];
+            const method = mapping?.method ?? "POST";
+            const endpoint = mapping?.endpoint ?? "/";
+            const chain = chains.find((c) => c.findingId === f.id);
+            return (
+              <ContractDiffPanel
+                key={`${f.description}-${i}`}
+                status="DRIFT"
+                documented={{
+                  label: "Documented",
+                  fields: [
+                    {
+                      name: "Expectation from docs",
+                      detail: f.description.slice(0, 120),
+                      tone: "removed",
+                    },
+                  ],
+                }}
+                observed={{
+                  label: "Observed",
+                  fields: [
+                    {
+                      name: f.blockerType ?? f.severity,
+                      detail: chain
+                        ? `HTTP ${chain.httpStatus}: ${chain.httpResponse.slice(0, 80)}`
+                        : "Verified via HTTP probe + Evidence Gate",
+                      tone: "added",
+                    },
+                  ],
+                }}
+                actions={
+                  <InvestigationActions
+                    reproduction={buildMinimalReproduction({
+                      method,
+                      endpoint,
+                      baseUrl,
+                      body: summary?.sampleRequest,
+                      finding: f.description,
+                    })}
+                    vendorQuestion={buildVendorQuestion({
+                      finding: f.description,
+                      blockerType: f.blockerType,
+                      method,
+                      endpoint,
+                    })}
+                  />
+                }
+              />
+            );
+          })}
+          {pack.unansweredQuestions.slice(0, 3).map((q, i) => (
+            <ContractDiffPanel
+              key={`q-${i}`}
+              status="INCONCLUSIVE"
+              documented={{
+                label: "Documented",
+                fields: [{ name: "Open validation gap" }],
+              }}
+              observed={{
+                label: "Observed",
+                fields: [{ name: q, tone: "changed" }],
+              }}
+              nextProbeReason={q}
+            />
+          ))}
+          {verified.length === 0 && pack.unansweredQuestions.length === 0 && (
+            <ContractDiffPanel
+              status="MATCH"
+              documented={{ label: "Documented", fields: [{ name: "Contract expectations" }] }}
+              observed={{ label: "Observed", fields: [{ name: "No verified drift", tone: "same" }] }}
+            />
+          )}
+        </div>
+        {inconclusive.length > 0 && verified.length > 0 && (
+          <p className="text-xs text-[var(--muted)] mt-3">
+            {inconclusive.length} candidate/inconclusive finding(s) remain visible but were not promoted by the Evidence Gate.
+          </p>
+        )}
+      </div>
+
       <div className="card mb-6">
         <h3 className="font-medium mb-1">Evidence Chain</h3>
         <p className="text-xs text-[var(--muted)] mb-4">
@@ -181,6 +318,7 @@ export default function PackPage() {
           <li>postman-collection.json</li>
           <li>typescript-client.ts</li>
           <li>vendor-clarification-email.md</li>
+          <li>vendor-issue.md</li>
           <li>agent-trajectories.json</li>
         </ul>
       </div>

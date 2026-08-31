@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getRun, saveRun } from "@/lib/store";
-import { approveProbeAndContinue } from "@integraguard/workflow";
+import {
+  approveProbeAndContinue,
+  approveAgenticProbeAndContinue,
+} from "@integraguard/workflow";
 
 export async function POST(
   req: Request,
@@ -18,14 +21,18 @@ export async function POST(
   }
 
   try {
-    const result = await approveProbeAndContinue(run.workflowCheckpoint, probeId, {
+    const opts = {
       autoApproveProbes: run.autoApproveProbes ?? false,
       useLlm: run.input.useLlm,
-      onEvent: (ev) => {
+      onEvent: (ev: import("@integraguard/schemas").TrajectoryEvent) => {
         run.trajectories.push(ev);
         saveRun(run);
       },
-    });
+    };
+
+    const result = run.useLangGraph
+      ? await approveAgenticProbeAndContinue(run.workflowCheckpoint, probeId, opts)
+      : await approveProbeAndContinue(run.workflowCheckpoint, probeId, opts);
 
     run.workflowCheckpoint = result.checkpoint;
 

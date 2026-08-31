@@ -1,6 +1,11 @@
 import AjvImport from "ajv";
 import YAML from "yaml";
 import type { HttpProbeResult } from "@integraguard/schemas";
+import { redactSecrets, redactHeaders } from "./redaction.js";
+import {
+  fetchWithValidatedRedirects,
+  type EgressPolicy,
+} from "./safe-url.js";
 
 const Ajv = (AjvImport as unknown as { default: typeof AjvImport }).default ?? AjvImport;
 
@@ -12,22 +17,13 @@ export interface HttpProbeConfig {
   headers?: Record<string, string>;
   body?: unknown;
   timeoutMs?: number;
+  /** When set, use SSRF-safe fetch with redirect validation */
+  egressPolicy?: EgressPolicy;
 }
 
-function redactSecrets(obj: unknown): unknown {
-  if (typeof obj !== "object" || obj === null) return obj;
-  const redacted: Record<string, unknown> = {};
-  const sensitiveKey = /^(authorization|x-api-key|api[_-]?key|apikey|token|secret|password|cookie)$/i;
-  for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
-    if (sensitiveKey.test(k)) {
-      redacted[k] = "[REDACTED]";
-    } else if (typeof v === "object") {
-      redacted[k] = redactSecrets(v);
-    } else {
-      redacted[k] = v;
-    }
-  }
-  return redacted;
+function isLocalSandboxHost(host: string): boolean {
+  const h = host.toLowerCase();
+  return h === "localhost" || h === "127.0.0.1" || h === "::1" || h === "[::1]";
 }
 
 export async function httpProbe(config: HttpProbeConfig): Promise<HttpProbeResult> {
@@ -38,16 +34,30 @@ export async function httpProbe(config: HttpProbeConfig): Promise<HttpProbeResul
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), config.timeoutMs ?? 10000);
 
+  const init: RequestInit = {
+    method: config.method,
+    headers: {
+      "Content-Type": "application/json",
+      ...config.headers,
+    },
+    body: config.body !== undefined ? JSON.stringify(config.body) : undefined,
+    signal: controller.signal,
+  };
+
   try {
-    const response = await fetch(url.toString(), {
-      method: config.method,
-      headers: {
-        "Content-Type": "application/json",
-        ...config.headers,
-      },
-      body: config.body !== undefined ? JSON.stringify(config.body) : undefined,
-      signal: controller.signal,
-    });
+    let response: Response;
+    if (config.egressPolicy) {
+      const host = url.hostname;
+      const policy: EgressPolicy = {
+        ...config.egressPolicy,
+        allowPrivateNetwork:
+          config.egressPolicy.allowPrivateNetwork ??
+          (isLocalSandboxHost(host) ? true : false),
+      };
+      response = await fetchWithValidatedRedirects(url.toString(), init, policy);
+    } else {
+      response = await fetch(url.toString(), init);
+    }
 
     let body: unknown;
     const text = await response.text();
@@ -65,7 +75,7 @@ export async function httpProbe(config: HttpProbeConfig): Promise<HttpProbeResul
     return {
       probeId: config.probeId,
       statusCode: response.status,
-      headers,
+      headers: redactHeaders(headers),
       body: redactSecrets(body),
       durationMs: Date.now() - start,
     };
@@ -189,4 +199,50 @@ export {
   type CrawledPage,
   type DocsCrawlResult,
 } from "./docs-crawler.js";
+
+export {
+  diffShapes,
+  normalizeToShape,
+  summarizeDiffs,
+  type ShapeDiff,
+  type ShapeDiffKind,
+} from "./schema-diff.js";
+
+export {
+  evaluateProbePolicy,
+  classifyProbeRisk,
+  type ProbePolicyInput,
+  type ProbePolicyDecision,
+  type ProbeRiskLevel,
+} from "./probe-policy.js";
+
+export { redactSecrets, redactHeaders, type RedactionOptions } from "./redaction.js";
+
+export {
+  validateTargetUrl,
+  resolveAndValidateHost,
+  fetchWithValidatedRedirects,
+  type EgressPolicy,
+  type UrlValidationResult,
+} from "./safe-url.js";
+
+export {
+  loadProjectConfig,
+  configToAnalysisInput,
+  resolveConfigSources,
+  resolveExecutionHeaders,
+  resolveExecutionHeadersFromConfig,
+} from "./project-config-loader.js";
+
+export {
+  buildContractSnapshot,
+  diffContractSnapshots,
+  type ContractSnapshot,
+} from "./contract-snapshot.js";
+
+export {
+  loadDocumentationSource,
+  loadOpenApiSource,
+  type LoadedSources,
+} from "./fetch-sources.js";
 

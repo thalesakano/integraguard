@@ -3,6 +3,8 @@ export interface CrawlOptions {
   maxPages?: number;
   maxBytesPerPage?: number;
   timeoutMs?: number;
+  /** When set, every fetch uses fail-closed redirect/host validation. */
+  egressPolicy?: import("./safe-url.js").EgressPolicy;
 }
 
 export interface CrawledPage {
@@ -167,21 +169,44 @@ function extractSuggestedBaseUrl(text: string): string | undefined {
 
 async function fetchText(
   url: string,
-  opts: { timeoutMs: number; maxBytes: number; accept?: string }
+  opts: {
+    timeoutMs: number;
+    maxBytes: number;
+    accept?: string;
+    egressPolicy?: import("./safe-url.js").EgressPolicy;
+  }
 ): Promise<{ ok: boolean; status: number; contentType: string; body: string; finalUrl: string }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), opts.timeoutMs);
   try {
-    const res = await fetch(url, {
-      headers: {
-        Accept:
-          opts.accept ??
-          "text/markdown,text/plain,text/html,application/xhtml+xml,application/json,application/yaml,*/*",
-        "User-Agent": "IntegraGuardDocsCrawler/0.1 (+https://github.com/integraguard)",
-      },
-      signal: controller.signal,
-      redirect: "follow",
-    });
+    let res: Response;
+    if (opts.egressPolicy) {
+      const { fetchWithValidatedRedirects } = await import("./safe-url.js");
+      res = await fetchWithValidatedRedirects(
+        url,
+        {
+          headers: {
+            Accept:
+              opts.accept ??
+              "text/markdown,text/plain,text/html,application/xhtml+xml,application/json,application/yaml,*/*",
+            "User-Agent": "IntegraGuardDocsCrawler/0.1",
+          },
+          signal: controller.signal,
+        },
+        opts.egressPolicy
+      );
+    } else {
+      res = await fetch(url, {
+        headers: {
+          Accept:
+            opts.accept ??
+            "text/markdown,text/plain,text/html,application/xhtml+xml,application/json,application/yaml,*/*",
+          "User-Agent": "IntegraGuardDocsCrawler/0.1 (+https://github.com/integraguard)",
+        },
+        signal: controller.signal,
+        redirect: "follow",
+      });
+    }
     const buf = await res.arrayBuffer();
     const slice = buf.byteLength > opts.maxBytes ? buf.slice(0, opts.maxBytes) : buf;
     return {
@@ -230,7 +255,11 @@ function markdownAlternates(seedUrl: string): string[] {
 async function discoverOpenApi(
   origin: string,
   candidates: string[],
-  opts: { timeoutMs: number; maxBytes: number }
+  opts: {
+    timeoutMs: number;
+    maxBytes: number;
+    egressPolicy?: import("./safe-url.js").EgressPolicy;
+  }
 ): Promise<{ urls: string[]; spec?: string }> {
   const urls = new Set<string>();
   let spec: string | undefined;
@@ -245,6 +274,7 @@ async function discoverOpenApi(
         timeoutMs: Math.min(opts.timeoutMs, 10_000),
         maxBytes: opts.maxBytes,
         accept: "application/json,application/yaml,text/yaml,text/plain,*/*",
+        egressPolicy: opts.egressPolicy,
       });
       if (!res.ok) continue;
       if (looksLikeOpenApi(res.body, res.contentType)) {
@@ -267,6 +297,7 @@ export async function crawlApiDocs(options: CrawlOptions): Promise<DocsCrawlResu
   const maxPages = options.maxPages ?? 10;
   const maxBytes = options.maxBytesPerPage ?? 400_000;
   const timeoutMs = options.timeoutMs ?? 12_000;
+  const egressPolicy = options.egressPolicy;
   const warnings: string[] = [];
 
   const seedUrl = normalizeUrl(options.seedUrl, options.seedUrl);
@@ -295,7 +326,7 @@ export async function crawlApiDocs(options: CrawlOptions): Promise<DocsCrawlResu
 
     let fetched;
     try {
-      fetched = await fetchText(next.url, { timeoutMs, maxBytes });
+      fetched = await fetchText(next.url, { timeoutMs, maxBytes, egressPolicy });
     } catch (err) {
       warnings.push(`Failed to fetch ${next.url}: ${err instanceof Error ? err.message : String(err)}`);
       continue;
@@ -363,7 +394,11 @@ export async function crawlApiDocs(options: CrawlOptions): Promise<DocsCrawlResu
     }
   }
 
-  const openApi = await discoverOpenApi(origin, openApiCandidates, { timeoutMs, maxBytes });
+  const openApi = await discoverOpenApi(origin, openApiCandidates, {
+    timeoutMs,
+    maxBytes,
+    egressPolicy,
+  });
 
   // Prefer markdown pages in the combined corpus
   const ordered = [...pages].sort((a, b) => {
